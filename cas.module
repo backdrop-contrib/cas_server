@@ -1,0 +1,183 @@
+<?php
+// $Id$
+/**
+ * Enables users to authenticate via a Central Authentication Service (CAS)
+ * Cas will currently work if the auto registration is turned on and will
+ * create user accounts automatically.
+ */
+
+require_once('CAS/CAS.php');
+
+/** 
+* Implementation of hook_init
+* Traps a page load to see if authentication is required.
+*/
+
+function cas_init() {
+  global $user, $account;
+  if ($user->uid) {
+    //do nothing because user is already logged into Drupal
+  }
+  else if ( _cas_force_login()){
+     phpCAS::setDebug();
+     $server_version   = (string)variable_get('cas_version', '2.0');
+     $server_cas_server  = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
+     $server_port      = (int)variable_get('cas_port', '443');
+     $server_uri       = (string)variable_get('cas_uri', '');
+     $start_session    = (boolean)FALSE; // Drupal takes care of its own session
+
+     phpCAS::client($server_version, $server_cas_server, $server_port, $server_uri, $start_session);
+     // force CAS authentication
+     phpCAS::forceAuthentication();
+     $cas_name = phpCAS::getUser();
+
+  // try to log into Drupal. if unsuccessful, register the user
+     if(variable_get('cas_authmap', 0)) { // users are coming from Drupal; no need to use the external_load and the authmap
+         $user = user_load(array("name" => $cas_name));
+     } else {  			       // users are external; use authmap table for associating external users
+        $user = user_external_load($cas_name);
+     }
+     if(!$user->uid) {
+         if(variable_get("user_register", 1) == 1) {
+         $user_default = array("name" => $cas_name, "pass" => "", "init" => db_escape_string($cas_name), "status" => 1, "roles" => array(DRUPAL_AUTHENTICATED_RID));
+         $user = user_save("", $user_default);
+         watchdog("user", "new user: $user->name (CAS)", l(t("edit user"), "admin/user/edit/$user->uid"));
+     }
+    }
+ if($user->uid && $user->uid > 0) { // final check to make sure we have a good user
+    drupal_set_message("Logged in via CAS as " . $user->name . ".");
+    if(variable_get('cas_authmap', 0)) { // users details are controlled in Drupal; send them to their user edit page
+      drupal_goto("user/" . $user->uid . "/edit");
+    } else { 				 // send them to the site home page
+      drupal_goto($site_frontpage);
+    }
+  }
+ }
+}
+
+
+/**
+ * Implementation of hook_perm().
+ */
+function cas_perm() {
+  return array('administer cas');
+}
+
+/**
+ * Implementation of hook_help().
+ */
+function cas_help($section) {
+  switch ($section) {
+    case 'admin/modules#description':
+      return t("Allows users to authenticate via a Central Authentication Service.");
+  }
+}
+/**
+* Implements hook_menu.
+*
+*/
+function cas_menu($may_cache) {
+  global $user;
+  $items = array();
+
+  if ($may_cache) {
+    $items[] = array('path' => 'admin/settings/cas', 'title' => t('CAS'),
+      'callback' => 'cas_configure', 'access' => user_access('administer cas'));
+    $items[] = array('path' => 'cas', 'title' => t('CAS'),
+      'callback' => 'cas_page', 'access' => TRUE, 'type' => MENU_CALLBACK);
+  }
+  return $items;
+}
+
+/**
+* Provides settings pages.
+*/
+function cas_configure() {
+
+  $form['server'] = array('#type' => 'fieldset', '#title' => t('CAS server settings'),'#collapsible' => true,'#collapsed' => false  );
+  $form['server']['cas_version'] = array('#type' => 'radios', '#title' => t('CAS Version'), '#default_value' => variable_get('cas_version', '2.0'), '#options' => array('1.0' => '1.0', '2.0' => '2.0'));
+  $form['server']['cas_server'] = array('#type' => 'textfield',  '#title' => t('Cas Server'),   '#default_value' => variable_get('cas_server', ''), '#size' => 30,'#maxlength' => 55, '#description' => t('Location of CAS authentication Service'));
+  $form['server']['cas_port'] = array('#type' => 'textfield', '#title' => t('CAS Port'), '#default_value' => variable_get('cas_port', '443'), '#size' => 30, '#maxlength' => 8, '#description' => '443 is the standard ssl port; 8443 is the standard non-root port for Tomcat');
+  $form['server']['cas_uri'] = array('#type' => 'textfield', '#title' => t('CAS URI'), '#default_value' => variable_get('cas_uri', ''), '#size' => 30, '#description' => 'If CAS is not at the root of the host, include a URI (e.g., /cas)');
+  $form['account'] = array('#type' => 'fieldset', '#title' => t('User account settings'),'#collapsible' => true,'#collapsed' => true);
+  $form['account']['cas_authmap'] = array('#type' => 'checkbox', '#title' => t('Is Drupal also the CAS user repository?'), '#default_value' => variable_get('cas_authmap', 0), '#description' => t('In most cases, the answer will be no; an LDAP repository will be the source of CAS users. But in some cases, the Drupal user database could be used as the central user store for single sign-on. If this is the case, select this option.'));
+  $form['account']['cas_domain'] = array('#type' => 'textfield',  '#title' => t('Email Domain'), '#default_value' => variable_get('cas_domain', ''), '#size' => 30,'#maxlength' => 55, '#description' => t('Append this domain name to each new user in order generate his email address.'));
+  $form['pages'] = array('#type' => 'fieldset', '#title' => t('Redirection settings'),'#collapsible' => true,    '#collapsed' => true);
+  $form['pages']['cas_access'] = array('#type' => 'radios', '#title' => t('Require Cas Login for '), '#default_value' => variable_get('cas_access',0), '#options' => array(t('specific pages'), t('all pages')));
+  $form['pages']['cas_pages'] = array('#type' => 'textarea',  '#title' => t('Specific pages'),  '#default_value' => variable_get('cas_pages',''), '#cols' => 40,	'#rows' => 5, '#description' => t("Enter one page per line as Drupal paths. The '*' character is a wildcard. Example paths are '<em>blog</em>' for the blog page and '<em>blog/*</em>' for every personal blog. '<em>&lt;front&gt;</em>' is the front page."));
+  return system_settings_form('cas_configure', $form);
+}
+
+/**
+* Redirects to appropriate page based on user settings.
+*/
+function cas_page() {
+  $destination = variable_get('site_frontpage', 'node');
+  if ($_REQUEST['destination']) {
+    $destination = drupal_get_destination();
+    //unset($_REQUEST['destination']);
+  }
+  drupal_goto($destination);
+}
+/**
+* Provides login blog that only shows up when the user logs in.
+*/
+function cas_block($op = 'list', $delta = 0, $edit = array()) {
+  global $user;
+  if ($op == 'list') {
+     $blocks[0]['info'] = t('CAS User login');
+
+     return $blocks;
+  }
+  else if ($op == 'view') {
+    $block = array();
+
+    switch ($delta) {
+      case 0:
+        // For usability's sake, avoid showing two login forms on one page.
+        if (!$user->uid && !(arg(0) == 'user' && !is_numeric(arg(1)))) {
+          $edit = $_POST['edit'];
+
+          $output = "<div class=\"user-login-block\">\n";
+
+          // NOTE: special care needs to be taken because on pages with forms,
+          // such as node and comment submission pages, the $edit variable
+          // might already be set.
+          $output .= "</div>\n";
+          $output .= '<a href="';
+          $output .= url('cas',drupal_get_destination());
+          $output .= '">Login</a>';
+          $block['subject'] = t('User Login');
+          $block['content'] = $output;
+        }
+        return $block;
+     }
+  }
+}
+
+/**
+* Determines whether cas login should be enforced for this page load. 
+* This is done based on the redirection settings for this module.
+* Admin/settings/cas
+*/
+function _cas_force_login() {
+  if (($_GET["q"]=="cas"))
+  {
+     return true;
+  }
+  else if (variable_get('cas_access',0) == 1)  {
+    return TRUE;
+  }
+  else {
+    $page_match = FALSE;
+    $pages = variable_get('cas_pages','');
+    // This common page matching logic used throughout drupal.
+    if ($pages) {
+      $path = drupal_get_path_alias($_GET['q']);
+      $regexp = '/^('. preg_replace(array('/(\r\n?|\n)/', '/\\\\\*/', '/(^|\|)\\\\<front\\\\>($|\|)/'), array('|', '.*', '\1'. variable_get('site_frontpage', 'node') .'\2'), preg_quote($pages, '/')) .')$/';
+      $page_match = preg_match($regexp, $path);
+    }
+    return $page_match;
+  }
+}
+?>
