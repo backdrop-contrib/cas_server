@@ -106,7 +106,7 @@ function cas_configure() {
   $form['account']['cas_authmap'] = array('#type' => 'checkbox', '#title' => t('Is Drupal also the CAS user repository?'), '#default_value' => variable_get('cas_authmap', 0), '#description' => t('In most cases, the answer will be no; an LDAP repository will be the source of CAS users. But in some cases, the Drupal user database could be used as the central user store for single sign-on. If this is the case, select this option.'));
   $form['account']['cas_domain'] = array('#type' => 'textfield',  '#title' => t('Email Domain'), '#default_value' => variable_get('cas_domain', ''), '#size' => 30,'#maxlength' => 55, '#description' => t('Append this domain name to each new user in order generate his email address.'));
   $form['account']['cas_hide_email'] = array('#type' => 'checkbox', '#title' => t('Users canot change email address'), '#default_value' => variable_get('cas_hide_email', 0), '#description' => t('Hide email address field on the edit user form'));
-  $form['account']['cas_hide_password'] = array('#type' => 'checkbox', '#title' => t('Users canot change password'), '#default_value' => variable_get('cas_hide_email', 0), '#description' => t('Hides password field on the edit user form'));
+  $form['account']['cas_hide_password'] = array('#type' => 'checkbox', '#title' => t('Users canot change password'), '#default_value' => variable_get('cas_hide_password', 0), '#description' => t('Hides password field on the edit user form'));
   $form['pages'] = array('#type' => 'fieldset', '#title' => t('Redirection settings'),'#collapsible' => true,    '#collapsed' => true);
   $form['pages']['cas_access'] = array('#type' => 'radios', '#title' => t('Require Cas Login for '), '#default_value' => variable_get('cas_access',0), '#options' => array(t('specific pages'), t('all pages')));
   $form['pages']['cas_pages'] = array('#type' => 'textarea',  '#title' => t('Specific pages'),  '#default_value' => variable_get('cas_pages',''), '#cols' => 40,	'#rows' => 5, '#description' => t("Enter one page per line as Drupal paths. The '*' character is a wildcard. Example paths are '<em>blog</em>' for the blog page and '<em>blog/*</em>' for every personal blog. '<em>&lt;front&gt;</em>' is the front page."));
@@ -198,7 +198,7 @@ function cas_form_alter($form_id,&$form)
       if (variable_get('cas_hide_email',0) && variable_get('cas_domain',''))
       {
         $form['account']['mail']['#type']='hidden';
-        $form['account']['mail']['#value']= $form['username']['#default_value'].'@'.variable_get('cas_domain','');
+        $form['account']['mail']['#value']= $form['account']['name']['#default_value'].'@'.variable_get('cas_domain','');
       }
 
       //Remove the password fields from the form.
