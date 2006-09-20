@@ -83,17 +83,23 @@ function cas_menu($may_cache) {
   if ($may_cache) {
     $items[] = array(
       'path' => 'admin/settings/cas',
-      'title' => t('cas'),
+      'title' => t('cas settings'),
       'description' => 'Configure central authentication services',
       'callback' => 'drupal_get_form',
       'callback arguments' => 'cas_admin_settings',
       'access' => user_access('administer cas'),
       'type' => MENU_NORMAL_ITEM,
       );
-    if ((!$user->uid) || ((arg(0)=='admin') && (arg(1) == 'build') && arg(3) == 'menu'))
+    if ((!$user->uid) || ((arg(0)=='admin') && (arg(1) == 'build') && arg(2) == 'menu'))
     {
-      $items[] = array('path' => 'cas', 'title' => t('Login'),
-       'callback' => 'cas_page', 'access' => TRUE, 'type' => MENU_SUGGESTED_ITEM);
+      drupal_set_message('loading menu array');
+      $items[] = array(
+       'path' => 'cas',
+       'title' => t('CAS Login'),
+       'callback' => 'cas_page',
+       'access' => TRUE,
+       'type' => MENU_SUGGESTED_ITEM,
+       );
     }
   }
   return $items;
@@ -124,12 +130,12 @@ function cas_admin_settings() {
 * Redirects to appropriate page based on user settings.
 */
 function cas_page() {
-  //$destination = variable_get('site_frontpage', 'node');
+  $destination = variable_get('site_frontpage', 'node');
   if ($_REQUEST['destination']) {
     $destination = drupal_get_destination();
-    //unset($_REQUEST['destination']);
+    unset($_REQUEST['destination']);
   }
-  // drupal_goto($destination);
+  drupal_goto($destination);
 }
 /**
 * Provides login blog that only shows up when the user logs in.
