@@ -31,7 +31,19 @@ function cas_init() {
 
      phpCAS::client($server_version, $server_cas_server, $server_port, $server_uri, $start_session);
      // force CAS authentication
-     phpCAS::authenticateIfNeeded();
+     
+     // using function check for backward compatibility of the cas libraries.  
+     // Newer versions of the cas client use authenticateIfNeeded,
+     // but older versions use forceAuthentication
+     if (is_callable(array(phpCAS,'authenticateIfNeeded')))
+     {
+       phpCAS::authenticateIfNeeded();
+     }
+     else
+     {
+       phpCAS::forceAuthentication();
+     }
+
      $cas_name = phpCAS::getUser();
 
      // try to log into Drupal. if unsuccessful, register the user
