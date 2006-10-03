@@ -27,6 +27,7 @@ function cas_init() {
      $server_cas_server  = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
      $server_port      = (int)variable_get('cas_port', '443');
      $server_uri       = (string)variable_get('cas_uri', '');
+     $cas_domain       = (string)variable_get('cas_domain','');
      $start_session    = (boolean)FALSE; // Drupal takes care of its own session
 
      phpCAS::client($server_version, $server_cas_server, $server_port, $server_uri, $start_session);
@@ -65,6 +66,8 @@ function cas_init() {
          $user_default = array("name" => $cas_name, "pass" => "", "init" => db_escape_string($cas_name), "status" => 1, "roles" => array(DRUPAL_AUTHENTICATED_RID));
          if ($cas_authmap)
            $user_default['authname_cas'] = $cas_name;
+         if ($cas_domain)
+           $user_default['mail'] = $cas_name . '@' . $cas_domain;
          $user = user_save("", $user_default);
          watchdog("user", "new user: $user->name (CAS)", l(t("edit user"), "admin/user/edit/$user->uid"));
      }
