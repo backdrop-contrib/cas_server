@@ -15,10 +15,13 @@ require_once('CAS/CAS.php');
 
 function cas_init() {
   global $user, $account;
+
   if ($user->uid) {
     //do nothing because user is already logged into Drupal
   }
   else if ( _cas_force_login()){
+    $user_register = variable_get('user_register',1);
+    $cas_authmap = variable_get('cas_authmap',0);
      phpCAS::setDebug();
      $server_version   = (string)variable_get('cas_version', '2.0');
      $server_cas_server  = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
@@ -31,28 +34,38 @@ function cas_init() {
      phpCAS::authenticateIfNeeded();
      $cas_name = phpCAS::getUser();
 
-  // try to log into Drupal. if unsuccessful, register the user
+     // try to log into Drupal. if unsuccessful, register the user
      if(variable_get('cas_authmap', 0)) { // users are coming from Drupal; no need to use the external_load and the authmap
          $user = user_load(array("name" => $cas_name));
-     } else {  			       // users are external; use authmap table for associating external users
+     } else {
+         // users are external; use authmap table for associating external users
         $user = user_external_load($cas_name);
+        if (!$user->uid && variable_get('cas_hijack_user',0))
+        {
+          $user = user_load(array("name" => $cas_name));
+          if ($user->uid)
+            user_set_authmaps($user,array('cas' => $cas_name));
+        }
+
      }
      if(!$user->uid) {
-         if(variable_get("user_register", 1) == 1) {
+         if($user_register == 1) {
          $user_default = array("name" => $cas_name, "pass" => "", "init" => db_escape_string($cas_name), "status" => 1, "roles" => array(DRUPAL_AUTHENTICATED_RID));
+         if ($cas_authmap)
+           $user_default['authname_cas'] = $cas_name;
          $user = user_save("", $user_default);
          watchdog("user", "new user: $user->name (CAS)", l(t("edit user"), "admin/user/edit/$user->uid"));
      }
     }
- if($user->uid && $user->uid > 0) { // final check to make sure we have a good user
+  if($user->uid && $user->uid > 0) { // final check to make sure we have a good user
     drupal_set_message("Logged in via CAS as " . $user->name . ".");
-    if(variable_get('cas_authmap', 0)) { // users details are controlled in Drupal; send them to their user edit page
+    if($cas_authmap) { // users details are controlled in Drupal; send them to their user edit page
       drupal_goto("user/" . $user->uid . "/edit");
     } else { 				 // send them to the site home page
       drupal_goto($site_frontpage);
     }
-  }
- }
+  } // if we have a good user
+ } // End if user is already logged in else
 }
 
 
@@ -117,6 +130,7 @@ function cas_admin_settings() {
   $form['server']['cas_uri'] = array('#type' => 'textfield', '#title' => t('CAS URI'), '#default_value' => variable_get('cas_uri', ''), '#size' => 30, '#description' => 'If CAS is not at the root of the host, include a URI (e.g., /cas)');
   $form['account'] = array('#type' => 'fieldset', '#title' => t('User account settings'),'#collapsible' => true,'#collapsed' => true);
   $form['account']['cas_authmap'] = array('#type' => 'checkbox', '#title' => t('Is Drupal also the CAS user repository?'), '#default_value' => variable_get('cas_authmap', 0), '#description' => t('In most cases, the answer will be no; an LDAP repository will be the source of CAS users. But in some cases, the Drupal user database could be used as the central user store for single sign-on. If this is the case, select this option.'));
+  $form['account']['cas_hijack_user'] = array('#type' => 'checkbox', '#title' => t('If CAS is not the user repository, should cas highjack users with the same name?'), '#default_value' => variable_get('cas_hijack_user', 0), '#description' => t('If you have pre-created regular accounts in cas that you want converted to mapped accounts, check this box.  Otherwise cas will likely throw duplicate key violation errors on new users.'));
   $form['account']['cas_domain'] = array('#type' => 'textfield',  '#title' => t('Email Domain'), '#default_value' => variable_get('cas_domain', ''), '#size' => 30,'#maxlength' => 55, '#description' => t('Append this domain name to each new user in order generate his email address.'));
   $form['account']['cas_hide_email'] = array('#type' => 'checkbox', '#title' => t('Users canot change email address'), '#default_value' => variable_get('cas_hide_email', 0), '#description' => t('Hide email address field on the edit user form'));
   $form['account']['cas_hide_password'] = array('#type' => 'checkbox', '#title' => t('Users canot change password'), '#default_value' => variable_get('cas_hide_password', 0), '#description' => t('Hides password field on the edit user form'));
