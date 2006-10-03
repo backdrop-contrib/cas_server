@@ -44,7 +44,7 @@ function cas_init() {
         {
           $user = user_load(array("name" => $cas_name));
           if ($user->uid)
-            user_set_authmaps($user,array('cas' => $cas_name));
+            user_set_authmaps($user,array('authname_cas' => $cas_name));
         }
 
      }
