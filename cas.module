@@ -21,7 +21,7 @@ function cas_init() {
   }
   else if ( _cas_force_login()){
     $user_register = variable_get('user_register',1);
-    $cas_authmap = variable_get('cas_authmap',0);
+     $cas_authmap = variable_get('cas_authmap',0);
      phpCAS::setDebug();
      $server_version   = (string)variable_get('cas_version', '2.0');
      $server_cas_server  = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
@@ -32,8 +32,8 @@ function cas_init() {
 
      phpCAS::client($server_version, $server_cas_server, $server_port, $server_uri, $start_session);
      // force CAS authentication
-     
-     // using function check for backward compatibility of the cas libraries.  
+
+     // using function check for backward compatibility of the cas libraries.
      // Newer versions of the cas client use authenticateIfNeeded,
      // but older versions use forceAuthentication
      if (is_callable(array(phpCAS,'authenticateIfNeeded')))
@@ -47,8 +47,8 @@ function cas_init() {
 
      $cas_name = phpCAS::getUser();
 
-     // try to log into Drupal. if unsuccessful, register the user
-     if(variable_get('cas_authmap', 0)) { // users are coming from Drupal; no need to use the external_load and the authmap
+     // try to log into Drupal
+     if($cas_authmap) { // users are coming from Drupal; no need to use the external_load and the authmap
          $user = user_load(array("name" => $cas_name));
      } else {
          // users are external; use authmap table for associating external users
@@ -61,10 +61,12 @@ function cas_init() {
         }
 
      }
+     
+     // If we don't have a user register them.
      if(!$user->uid) {
          if($user_register == 1) {
          $user_default = array("name" => $cas_name, "pass" => "", "init" => db_escape_string($cas_name), "status" => 1, "roles" => array(DRUPAL_AUTHENTICATED_RID));
-         if ($cas_authmap)
+         if (!$cas_authmap)
            $user_default['authname_cas'] = $cas_name;
          if ($cas_domain)
            $user_default['mail'] = $cas_name . '@' . $cas_domain;
