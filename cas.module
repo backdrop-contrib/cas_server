@@ -189,7 +189,7 @@ function cas_save_page()
 function cas_login_page() {
   $destination = variable_get('site_frontpage', 'node');
   if ($_GET['destination']) {
-    $destination = $_REQUEST['destination'];
+    $destination = $_GET['destination'];
   }
   elseif ($_SESSION['cas_goto'])
   {
@@ -224,10 +224,8 @@ function cas_block($op = 'list', $delta = 0, $edit = array()) {
           // NOTE: special care needs to be taken because on pages with forms,
           // such as node and comment submission pages, the $edit variable
           // might already be set.
+          $output .= l('Login','cas');
           $output .= "</div>\n";
-          $output .= '<a href="';
-          $output .= url('cas',drupal_get_destination());
-          $output .= '">Login</a>';
           $block['subject'] = t('User Login');
           $block['content'] = $output;
         }
