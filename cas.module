@@ -19,8 +19,8 @@ function cas_init() {
   if ($user->uid) {
     //do nothing because user is already logged into Drupal
   }
-  else if ( _cas_force_login()){
-    $user_register = variable_get('user_register',1);
+  elseif ( _cas_force_login()){
+     $user_register = variable_get('user_register',1);
      $cas_authmap = variable_get('cas_authmap',0);
      phpCAS::setDebug();
      $server_version   = (string)variable_get('cas_version', '2.0');
@@ -29,7 +29,7 @@ function cas_init() {
      $server_uri       = (string)variable_get('cas_uri', '');
      $cas_domain       = (string)variable_get('cas_domain','');
      $start_session    = (boolean)FALSE; // Drupal takes care of its own session
-
+     cas_save_page();
      phpCAS::client($server_version, $server_cas_server, $server_port, $server_uri, $start_session);
      // force CAS authentication
 
@@ -61,10 +61,10 @@ function cas_init() {
         }
 
      }
-     
+
      // If we don't have a user register them.
      if(!$user->uid) {
-         if($user_register == 1) {
+       if($user_register == 1) {
          $user_default = array("name" => $cas_name, "pass" => "", "init" => db_escape_string($cas_name), "status" => 1, "roles" => array(DRUPAL_AUTHENTICATED_RID));
          if (!$cas_authmap)
            $user_default['authname_cas'] = $cas_name;
@@ -72,16 +72,18 @@ function cas_init() {
            $user_default['mail'] = $cas_name . '@' . $cas_domain;
          $user = user_save("", $user_default);
          watchdog("user", "new user: $user->name (CAS)", l(t("edit user"), "admin/user/edit/$user->uid"));
+         if(($user->uid) && ($user->uid > 0) && $cas_authmap)
+         {
+           unset($_SESSION['cas_goto']);
+           drupal_goto("user/" . $user->uid . "/edit");
+         }
+       }
      }
-    }
-  if($user->uid && $user->uid > 0) { // final check to make sure we have a good user
-    drupal_set_message("Logged in via CAS as " . $user->name . ".");
-    if($cas_authmap) { // users details are controlled in Drupal; send them to their user edit page
-      drupal_goto("user/" . $user->uid . "/edit");
-    } else { 				 // send them to the site home page
-      drupal_goto($site_frontpage);
-    }
-  } // if we have a good user
+
+   if($user->uid && $user->uid > 0) { // final check to make sure we have a good user
+      drupal_set_message("Logged in via CAS as " . $user->name . ".");
+      } // if we have a good user
+
  } // End if user is already logged in else
 }
 
@@ -112,7 +114,7 @@ function cas_menu($may_cache) {
 
   if ($may_cache) {
     $items[] = array(
-      'path' => 'admin/settings/cas',
+      'path' => 'admin/user/cas',
       'title' => t('cas settings'),
       'description' => 'Configure central authentication services',
       'callback' => 'drupal_get_form',
@@ -122,11 +124,10 @@ function cas_menu($may_cache) {
       );
     if ((!$user->uid) || ((arg(0)=='admin') && (arg(1) == 'build') && arg(2) == 'menu'))
     {
-      drupal_set_message('loading menu array');
       $items[] = array(
        'path' => 'cas',
        'title' => t('CAS Login'),
-       'callback' => 'cas_page',
+       'callback' => 'cas_login_page',
        'access' => TRUE,
        'type' => MENU_SUGGESTED_ITEM,
        );
@@ -156,17 +157,43 @@ function cas_admin_settings() {
   $form['pages']['cas_pages'] = array('#type' => 'textarea',  '#title' => t('Specific pages'),  '#default_value' => variable_get('cas_pages',''), '#cols' => 40,	'#rows' => 5, '#description' => t("Enter one page per line as Drupal paths. The '*' character is a wildcard. Example paths are '<em>blog</em>' for the blog page and '<em>blog/*</em>' for every personal blog. '<em>&lt;front&gt;</em>' is the front page."));
   return system_settings_form($form);
 }
+/**
+* Saves the page that the user was on when login was requested or required
+*/
+function cas_save_page()
+{
+  if (!$_SESSION['cas_goto'])
+  {
+    if(arg(0)=='cas')
+    {
+      //we're were destined to the CAS login page, so set
+      //the page to the referrer.
+      $_SESSION['cas_goto'] = $_SERVER['HTTP_REFERER'];
+    }
+    else
+    {
+      //We're destined for another page, so save the group.
+      $_SESSION['cas_goto'] = $_GET['q'];
+    }
+  }
+}
 
 /**
 * Redirects to appropriate page based on user settings.
 */
-function cas_page() {
+function cas_login_page() {
   $destination = variable_get('site_frontpage', 'node');
-  if ($_REQUEST['destination']) {
-    $destination = drupal_get_destination();
-    unset($_REQUEST['destination']);
+  if ($_GET['destination']) {
+    $destination = $_REQUEST['destination'];
+  }
+  elseif ($_SESSION['cas_goto'])
+  {
+    $destination = $_SESSION['cas_goto'];
+    unset($_SESSION['cas_goto']);
   }
   drupal_goto($destination);
+  $output(t('Login successful'),l('Continue',$destination));
+  return "Cas page... you should never get here";
 }
 /**
 * Provides login blog that only shows up when the user logs in.
@@ -207,10 +234,9 @@ function cas_block($op = 'list', $delta = 0, $edit = array()) {
 /**
 * Determines whether cas login should be enforced for this page load.
 * This is done based on the redirection settings for this module.
-* Admin/settings/cas
 */
 function _cas_force_login() {
-  if (($_GET["q"]=="cas"))
+  if ((arg(0)=="cas"))
   {
      return true;
   }
