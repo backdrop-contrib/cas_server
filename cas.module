@@ -81,7 +81,12 @@ function cas_init() {
      }
 
    if($user->uid && $user->uid > 0) { // final check to make sure we have a good user
+   {
       drupal_set_message("Logged in via CAS as " . $user->name . ".");
+      // We can't count on the menu because we're changing login states.
+      cas_login_page();
+   }
+
       } // if we have a good user
 
  } // End if user is already logged in else
