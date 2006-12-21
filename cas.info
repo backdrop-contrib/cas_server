@@ -1,2 +1,3 @@
+; $Id $
 name = cas
 description = "Provides single sign-on Central Authentication Services (CAS)"
