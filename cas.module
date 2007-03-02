@@ -152,7 +152,7 @@ function cas_menu($may_cache) {
       'access' => user_access('administer cas'),
       'type' => MENU_NORMAL_ITEM,
       );
-    if ((!$user->uid) || ((arg(0)=='admin') && (arg(1) == 'build') && arg(2) == 'menu'))
+    if ((!$user->uid) || ((arg(0)=='admin') && (arg(1) == 'build') && (arg(2) == 'menu')))
     {
       $items[] = array(
        'path' => 'cas',
@@ -162,6 +162,17 @@ function cas_menu($may_cache) {
        'type' => MENU_SUGGESTED_ITEM,
        );
     }
+    if (($user->uid) || ((arg(0)=='admin') && (arg(1) == 'build') && (arg(2) == 'menu')))
+    {
+      $items[] = array(
+       'path' => 'caslogout',
+       'title' => t('CAS Logout'),
+       'callback' => 'cas_logout',
+       'access' => TRUE,
+       'type' => MENU_SUGGESTED_ITEM,
+       );
+    }
+
   }
   return $items;
 }
@@ -230,6 +241,32 @@ function cas_login_page() {
   $output(t('Login successful'),l('Continue',$destination));
   return "Cas page... you should never get here";
 }
+
+/**
+* Logs a user out of drupal and then out of cas
+*/
+function cas_logout()
+{
+  global $user;
+
+  watchdog('user', t('Session closed for %name.', array('%name' => theme('placeholder', $user->name))));
+
+  // Destroy the current session:
+  session_destroy();
+  module_invoke_all('user', 'logout', NULL, $user);
+
+  // We have to use $GLOBALS to unset a global variable:
+  $user = user_load(array('uid' => 0));
+
+  $port = variable_get('cas_port','443');
+  $server = variable_get('cas_server','cas');
+  $uri = variable_get('cas_uri','');
+  if ($port == '443')
+    drupal_goto("https://$server/$uri/logout");
+  else
+    drupal_goto("https://$server:$port/$uri/logout");
+}
+
 /**
 * Provides login blog that only shows up when the user logs in.
 */
