@@ -238,7 +238,8 @@ function cas_login_page() {
     unset($_SESSION['cas_goto']);
   }
   drupal_goto($destination);
-  $output(t('Login successful'),l('Continue',$destination));
+  // this should never happen.
+//  $output=(t('Login successful'),l('Continue',$destination));
   return "Cas page... you should never get here";
 }
 
