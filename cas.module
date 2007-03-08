@@ -66,12 +66,25 @@ function cas_init() {
      // If we don't have a user register them.
      if(!$user->uid) {
        if($cas_user_register == 1) {
-         $user_default = array("name" => $cas_name, "pass" => "", "init" => db_escape_string($cas_name), "status" => 1, "roles" => array(DRUPAL_AUTHENTICATED_RID));
+         $user_default = array(
+           "name" => $cas_name, 
+           "pass" => "", 
+           "init" => db_escape_string($cas_name), 
+           "status" => 1,
+           "roles" => array(DRUPAL_AUTHENTICATED_RID => 'authenticated user')
+           );
          if (!$cas_authmap)
            $user_default['authname_cas'] = $cas_name;
          if ($cas_domain)
            $user_default['mail'] = $cas_name . '@' . $cas_domain;
+           
+         // Become user 1 to be able to save profile information
+         $admin = array('uid'=> 1);
+         $user = user_load($admin);
+
+         // now save the user and become the new user. 
          $user = user_save("", $user_default);
+
          watchdog("user", "new user: $user->name (CAS)", l(t("edit user"), "admin/user/edit/$user->uid"));
          if(($user->uid) && ($user->uid > 0) && $cas_authmap)
          {
@@ -228,6 +241,7 @@ function cas_save_page()
 * Redirects to appropriate page based on user settings.
 */
 function cas_login_page() {
+  global $user;
   $destination = variable_get('site_frontpage', 'node');
   if ($_GET['destination']) {
     $destination = $_GET['destination'];
@@ -239,8 +253,9 @@ function cas_login_page() {
   }
   drupal_goto($destination);
   // this should never happen.
-//  $output=(t('Login successful'),l('Continue',$destination));
-  return "Cas page... you should never get here";
+  $output.= "Cas page... you should never get here";
+  drupal_set_message('hi');
+  return $output;
 }
 
 /**
