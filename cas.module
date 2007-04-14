@@ -68,7 +68,7 @@ function cas_init() {
        if($cas_user_register == 1) {
          $user_default = array(
            "name" => $cas_name, 
-           "pass" => "", 
+           "pass" => user_password(), 
            "init" => db_escape_string($cas_name), 
            "status" => 1,
            "roles" => array(DRUPAL_AUTHENTICATED_RID => 'authenticated user')
