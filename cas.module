@@ -85,12 +85,15 @@ function cas_init() {
          // now save the user and become the new user. 
          $user = user_save("", $user_default);
 
-         watchdog("user", "new user: $user->name (CAS)", l(t("edit user"), "admin/user/edit/$user->uid"));
+         watchdog("user", t('new user: %n (CAS)', array('%n' => $user->name)), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$user->uid"));
          if(($user->uid) && ($user->uid > 0) && $cas_authmap)
          {
            unset($_SESSION['cas_goto']);
            drupal_goto("user/" . $user->uid . "/edit");
          }
+         
+         // Set a session variable to denote this the initial login
+         $_SESSION['cas_first_login'] = true;
        }
      }
 
@@ -196,20 +199,25 @@ function cas_menu($may_cache) {
 function cas_admin_settings() {
 
   $form['server'] = array('#type' => 'fieldset', '#title' => t('CAS server settings'),'#collapsible' => true,'#collapsed' => false  );
-  $form['server']['cas_version'] = array('#type' => 'radios', '#title' => t('CAS Version'), '#default_value' => variable_get('cas_version', '2.0'), '#options' => array('1.0' => '1.0', '2.0' => '2.0'));
-  $form['server']['cas_server'] = array('#type' => 'textfield',  '#title' => t('Cas Server'),   '#default_value' => variable_get('cas_server', ''), '#size' => 30,'#maxlength' => 55, '#description' => t('Location of CAS authentication Service'));
-  $form['server']['cas_port'] = array('#type' => 'textfield', '#title' => t('CAS Port'), '#default_value' => variable_get('cas_port', '443'), '#size' => 30, '#maxlength' => 8, '#description' => '443 is the standard ssl port; 8443 is the standard non-root port for Tomcat');
-  $form['server']['cas_uri'] = array('#type' => 'textfield', '#title' => t('CAS URI'), '#default_value' => variable_get('cas_uri', ''), '#size' => 30, '#description' => 'If CAS is not at the root of the host, include a URI (e.g., /cas)');
+  $form['server']['cas_version'] = array('#type' => 'radios', '#title' => t('CAS version'), '#default_value' => variable_get('cas_version', '2.0'), '#options' => array('1.0' => '1.0', '2.0' => '2.0'));
+  $form['server']['cas_server'] = array('#type' => 'textfield',  '#title' => t('CAS server'),   '#default_value' => variable_get('cas_server', ''), '#size' => 30,'#maxlength' => 55, '#description' => t('Location of CAS authentication service.'));
+  $form['server']['cas_port'] = array('#type' => 'textfield', '#title' => t('CAS port'), '#default_value' => variable_get('cas_port', '443'), '#size' => 30, '#maxlength' => 8, '#description' => '443 is the standard ssl port. 8443 is the standard non-root port for Tomcat.');
+  $form['server']['cas_uri'] = array('#type' => 'textfield', '#title' => t('CAS URI'), '#default_value' => variable_get('cas_uri', ''), '#size' => 30, '#description' => 'If CAS is not at the root of the host, include a URI (e.g., /cas).');
   $form['account'] = array('#type' => 'fieldset', '#title' => t('User account settings'),'#collapsible' => true,'#collapsed' => true);
   $form['account']['cas_authmap'] = array('#type' => 'checkbox', '#title' => t('Is Drupal also the CAS user repository?'), '#default_value' => variable_get('cas_authmap', 0), '#description' => t('In most cases, the answer will be no; an LDAP repository will be the source of CAS users. But in some cases, the Drupal user database could be used as the central user store for single sign-on. If this is the case, select this option.'));
-  $form['account']['cas_hijack_user'] = array('#type' => 'checkbox', '#title' => t('If CAS is not the user repository, should cas highjack users with the same name?'), '#default_value' => variable_get('cas_hijack_user', 0), '#description' => t('If you have pre-created regular accounts in cas that you want converted to mapped accounts, check this box.  Otherwise cas will likely throw duplicate key violation errors on new users.'));
+  $form['account']['cas_hijack_user'] = array('#type' => 'checkbox', '#title' => t('If CAS is not the user repository, should cas highjack users with the same name?'), '#default_value' => variable_get('cas_hijack_user', 0), '#description' => t('If you have pre-created regular accounts in cas that you want converted to mapped accounts, check this box.  Otherwise CAS will likely throw duplicate key violation errors on new users.'));
   $form['account']['cas_user_register'] = array('#type' => 'checkbox', '#title' => t('Should Drupal user accounts be automatically created?'), '#default_value' => variable_get('cas_user_register', 1), '#description' => t('If a CAS user logs in, his Drupal account will automatically be created. If you don\'t check this option, you will have to pre-create accounts for the users you want to allow.'));
   $form['account']['cas_domain'] = array('#type' => 'textfield',  '#title' => t('Email Domain'), '#default_value' => variable_get('cas_domain', ''), '#size' => 30,'#maxlength' => 55, '#description' => t('Append this domain name to each new user in order generate his email address.'));
-  $form['account']['cas_hide_email'] = array('#type' => 'checkbox', '#title' => t('Users canot change email address'), '#default_value' => variable_get('cas_hide_email', 0), '#description' => t('Hide email address field on the edit user form'));
-  $form['account']['cas_hide_password'] = array('#type' => 'checkbox', '#title' => t('Users canot change password'), '#default_value' => variable_get('cas_hide_password', 0), '#description' => t('Hides password field on the edit user form'));
+  $form['account']['cas_hide_email'] = array('#type' => 'checkbox', '#title' => t('Users canot change email address'), '#default_value' => variable_get('cas_hide_email', 0), '#description' => t('Hide email address field on the edit user form.'));
+  $form['account']['cas_hide_password'] = array('#type' => 'checkbox', '#title' => t('Users canot change password'), '#default_value' => variable_get('cas_hide_password', 0), '#description' => t('Hide password field on the edit user form.'));
   $form['pages'] = array('#type' => 'fieldset', '#title' => t('Redirection settings'),'#collapsible' => true,    '#collapsed' => true);
-  $form['pages']['cas_access'] = array('#type' => 'radios', '#title' => t('Require Cas Login for '), '#default_value' => variable_get('cas_access',0), '#options' => array(t('specific pages'), t('all pages')));
+  $form['pages']['cas_access'] = array('#type' => 'radios', '#title' => t('Require CAS login for'), '#default_value' => variable_get('cas_access',0), '#options' => array(t('specific pages'), t('all pages')));
   $form['pages']['cas_pages'] = array('#type' => 'textarea',  '#title' => t('Specific pages'),  '#default_value' => variable_get('cas_pages',''), '#cols' => 40,	'#rows' => 5, '#description' => t("Enter one page per line as Drupal paths. The '*' character is a wildcard. Example paths are '<em>blog</em>' for the blog page and '<em>blog/*</em>' for every personal blog. '<em>&lt;front&gt;</em>' is the front page."));
+  
+  // Settings for redirection upon first login
+  $form['pages']['cas_first_login'] = array('#type' => 'checkbox',  '#title' => t('Force redirection on initial login'),  '#default_value' => variable_get('cas_first_login', 0), '#description' => t("Activate this option if you want a user to be directed to the following page after their first CAS login."));
+  $form['pages']['cas_first_login_destination'] = array('#type' => 'textfield',  '#title' => t('Initial login landing page'), '#default_value' => variable_get('cas_first_login_destination', ''), '#size' => 30,'#maxlength' => 55, '#description' => t("Drupal path or URL. An example path is '<em>blog</em>' for the blog page. '&lt;front&gt;' is the front page. An example URL is '<em>http://www.example.com</em>'."));
+  
   $form['ldap'] = array('#type' => 'fieldset', '#title' => t('LDAP settings'),'#collapsible' => true,    '#collapsed' => true);
   $form['ldap']['cas_useldap'] = array('#type' => 'checkbox', '#title' => t('Should we extract the user email from an LDAP directory?'), '#default_value' => variable_get('cas_useldap', 0), '#description' => t('Activate this option if you want to extract the user email from an LDAP directory. <strong>Ldapauth module must be enabled and configured</strong>.'));
   $form['ldap']['cas_ldap_email_attribute'] = array('#type' => 'textfield',  '#title' => t('Email attribute'), '#default_value' => variable_get('cas_ldap_email_attribute', 'mail'), '#size' => 30,'#maxlength' => 55, '#description' => t('LDAP entry attribute containing the email address.'));
@@ -243,7 +251,12 @@ function cas_save_page()
 function cas_login_page() {
   global $user;
   $destination = variable_get('site_frontpage', 'node');
-  if ($_GET['destination']) {
+  // If it is the user's first CAS login and initial login redirection is enabled, go to the set page
+  if($_SESSION['cas_first_login'] && (variable_get('cas_first_login', 0) == 1)) {
+  	$destination = variable_get('cas_first_login_destination', '');
+    unset($_SESSION['cas_first_login']);
+  }
+  elseif ($_GET['destination']) {
     $destination = $_GET['destination'];
   }
   elseif ($_SESSION['cas_goto'])
@@ -253,7 +266,7 @@ function cas_login_page() {
   }
   drupal_goto($destination);
   // this should never happen.
-  $output.= "Cas page... you should never get here";
+  $output.= t("Cas page... you should never get here");
   drupal_set_message('hi');
   return $output;
 }
