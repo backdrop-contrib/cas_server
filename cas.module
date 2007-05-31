@@ -118,7 +118,7 @@ function cas_init() {
       ** LDAPAuth interfacing - END
       */
 
-      drupal_set_message(t("Logged in via CAS as %cas_username.", array('%cas_username' => $user->name)));
+      drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
       // We can't count on the menu because we're changing login states.
       cas_login_page();
    }
@@ -218,6 +218,13 @@ function cas_admin_settings() {
   $form['pages']['cas_first_login'] = array('#type' => 'checkbox',  '#title' => t('Force redirection on initial login'),  '#default_value' => variable_get('cas_first_login', 0), '#description' => t("Activate this option if you want a user to be directed to the following page after their first CAS login."));
   $form['pages']['cas_first_login_destination'] = array('#type' => 'textfield',  '#title' => t('Initial login landing page'), '#default_value' => variable_get('cas_first_login_destination', ''), '#size' => 30,'#maxlength' => 55, '#description' => t("Drupal path or URL. An example path is '<em>blog</em>' for the blog page. '&lt;front&gt;' is the front page. An example URL is '<em>http://www.example.com</em>'."));
   
+  // Setting for message displayed to user upon successfull login
+  $form['pages']['cas_login_message'] = array('#type' => 'textfield', '#title' => t('Successful login message'), '#default_value' => variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), '#description' => 'The message displayed to a user when he successfully logs in via CAS. You may specify \'%cas_username\', the username of the user.');
+  
+  // Setting for page to return to after a CAS logout
+  $form['pages']['cas_logout_redirect'] = array('#type' => 'checkbox',  '#title' => t('Redirect user on logout'),  '#default_value' => variable_get('cas_logout_redirect', 0), '#description' => t("Activate this option if you want a user to be directed to the following page after logging out of CAS. The logout destination must be specified below."));
+  $form['pages']['cas_logout_destination'] = array('#type' => 'textfield',  '#title' => t('Logout destination'), '#default_value' => variable_get('cas_logout_destination', ''), '#size' => 30,'#maxlength' => 55, '#description' => t("URL. An example URL is '<em>http://www.example.com</em>'."));
+  
   $form['ldap'] = array('#type' => 'fieldset', '#title' => t('LDAP settings'),'#collapsible' => true,    '#collapsed' => true);
   $form['ldap']['cas_useldap'] = array('#type' => 'checkbox', '#title' => t('Should we extract the user email from an LDAP directory?'), '#default_value' => variable_get('cas_useldap', 0), '#description' => t('Activate this option if you want to extract the user email from an LDAP directory. <strong>Ldapauth module must be enabled and configured</strong>.'));
   $form['ldap']['cas_ldap_email_attribute'] = array('#type' => 'textfield',  '#title' => t('Email attribute'), '#default_value' => variable_get('cas_ldap_email_attribute', 'mail'), '#size' => 30,'#maxlength' => 55, '#description' => t('LDAP entry attribute containing the email address.'));
@@ -290,10 +297,21 @@ function cas_logout()
   $port = variable_get('cas_port','443');
   $server = variable_get('cas_server','cas');
   $uri = variable_get('cas_uri','');
-  if ($port == '443')
-    drupal_goto("https://$server/$uri/logout");
-  else
-    drupal_goto("https://$server:$port/$uri/logout");
+  
+  // Begin constructing logout destination
+  $logout_destination = 'https://' . $server;
+  // Add abnormal port
+  if ($port != '443') {
+    $logout_destination .= ':' . $port;
+  }
+  // Add logout
+  $logout_destination .= $uri . '/logout';
+  // If admin has set and enabled a logout destination, add it
+  if(variable_get('cas_logout_redirect', 0) && variable_get('cas_logout_destination','')) {
+    $logout_destination .= '?service=' . variable_get('cas_logout_destination','');
+  }
+  // Go to the constructed logout destination
+  drupal_goto($logout_destination);
 }
 
 /**
@@ -335,6 +353,7 @@ function cas_block($op = 'list', $delta = 0, $edit = array()) {
 * This is done based on the redirection settings for this module.
 */
 function _cas_force_login() {
+    
   if ((arg(0)=="cas"))
   {
      return true;
