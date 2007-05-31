@@ -118,7 +118,8 @@ function cas_init() {
       ** LDAPAuth interfacing - END
       */
 
-      drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
+       module_invoke_all('user', 'login', null, $user);
+       drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
       // We can't count on the menu because we're changing login states.
       cas_login_page();
    }
