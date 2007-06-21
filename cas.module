@@ -509,8 +509,8 @@ function cas_block($op = 'list', $delta = 0, $edit = array()) {
 * This is done based on the redirection settings for this module.
 */
 function _cas_force_login() {
-    
-  if ((arg(0)=="cas"))
+  list($arg0) = split('/',$_GET['q']);
+  if ($arg0=="cas")
   {
      return true;
   }
