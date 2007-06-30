@@ -96,9 +96,10 @@ function cas_init() {
          $_SESSION['cas_first_login'] = true;
        }
      }
-
-   if($user->uid && $user->uid > 0) { // final check to make sure we have a good user
-   {
+ 
+    // final check to make sure we have a good user
+   if($user->uid && $user->uid > 0)
+    {
       /*
       ** LDAPAuth interfacing - BEGIN
       */
@@ -122,7 +123,7 @@ function cas_init() {
        drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
       // We can't count on the menu because we're changing login states.
       cas_login_page();
-   }
+   
 
       } // if we have a good user
       else
@@ -387,6 +388,7 @@ function cas_admin_settings() {
   
   return system_settings_form($form);
 }
+
 /**
 * Saves the page that the user was on when login was requested or required
 */
