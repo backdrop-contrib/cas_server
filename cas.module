@@ -356,6 +356,28 @@ function cas_admin_settings() {
      );
   
   
+  $form['misc'] = array(
+    '#type' => 'fieldset', 
+    '#title' => t('Miscellaneous settings'),
+    '#collapsible' => true,    
+    '#collapsed' => true,
+  );
+  
+  $form['misc']['cas_changePasswordURL'] = array(
+    '#type' => 'textfield', 
+    '#title' => t('Change password URL'), 
+    '#default_value' => variable_get('cas_changePasswordURL', ''), 
+    '#description' => t('The URL users should use for changing their password.  Leave blank to use the standard Drupal page.')
+  );
+  
+  $form['misc']['cas_registerURL'] = array(
+    '#type' => 'textfield', 
+    '#title' => t('Registration URL'), 
+    '#default_value' => variable_get('cas_registerURL', ''), 
+    '#description' => t('The URL users should use for changing registering.  Leave blank to use the standard Drupal page.')
+  );
+  
+  
   $form['ldap'] = array(
      '#type' => 'fieldset',
      '#title' => t('LDAP settings'),
@@ -580,6 +602,18 @@ function cas_form_alter($form_id,&$form)
       //Remove the password fields from the form.
       if (variable_get('cas_hide_password',0))
         unset($form['account']['pass']);
+    break;
+    
+    case 'user_pass':
+      if (!user_access('administer users') && variable_get('cas_changePasswordURL', '') != '') {
+        drupal_goto(variable_get('cas_changePasswordURL', ''));
+      }
+    break;
+    
+    case 'user_register':
+      if (!user_access('administer users') && variable_get('cas_registerURL', '') != '') {
+        drupal_goto(variable_get('cas_registerURL', ''));
+      }
     break;
   }
 }
