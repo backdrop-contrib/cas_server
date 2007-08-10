@@ -23,6 +23,15 @@ function cas_init() {
   elseif ( _cas_force_login()){
      $cas_user_register = variable_get('cas_user_register',1);
      $cas_authmap = variable_get('cas_authmap',0);
+     
+     $all_roles = user_roles();
+     $cas_roles = array();
+     foreach ($all_roles as $key=>$value) {
+       if (array_key_exists($key, variable_get('cas_auto_assigned_role', array(DRUPAL_AUTHENTICATED_RID)))) {
+         $cas_roles[$key] = $key;
+       }
+     }
+     
      phpCAS::setDebug();
      $server_version   = (string)variable_get('cas_version', '2.0');
      $server_cas_server  = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
@@ -71,7 +80,7 @@ function cas_init() {
            "pass" => user_password(), 
            "init" => db_escape_string($cas_name), 
            "status" => 1,
-           "roles" => array(DRUPAL_AUTHENTICATED_RID => 'authenticated user')
+           "roles" => $cas_roles,
            );
          if (!$cas_authmap)
            $user_default['authname_cas'] = $cas_name;
@@ -118,6 +127,17 @@ function cas_init() {
       /*
       ** LDAPAuth interfacing - END
       */
+      
+      // update the roles and reset the password
+      $roles = $user->roles;
+      foreach($cas_roles as $role) {
+       $roles[$role] = $role;
+      }
+      $user_up = array(
+       "pass" => user_password(),
+       "roles" => $roles
+      );
+      $user = user_save($user, $user_up);
 
        module_invoke_all('user', 'login', null, $user);
        drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
@@ -289,6 +309,16 @@ function cas_admin_settings() {
     '#default_value' => variable_get('cas_hide_password', 0),
     '#description' => t('Hide password field on the edit user form.'),
     );
+  
+  $form['account']['cas_auto_assigned_role'] = array(
+    '#type' => 'select', 
+    '#title' => t('Auto-assign users to the role(s)'), 
+    '#default_value' => variable_get('cas_auto_assigned_role', array(DRUPAL_AUTHENTICATED_RID)), 
+    '#options' => user_roles(true),
+    '#multiple' => true,
+    '#description' => t('This value can be used to establish a role automatically for all CAS users.  As an example, if you are also using the simple_ldap module, you can use this role to establish a tie between CAS and LDAP-populated data.  i.e. Users with the role of \'cas:user\' should have their LDAP data updated automatically.')
+  );
+  
   
   $form['pages'] = array(
     '#type' => 'fieldset',
