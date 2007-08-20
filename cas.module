@@ -31,7 +31,6 @@ function cas_init() {
          $cas_roles[$key] = $key;
        }
      }
-     
      phpCAS::setDebug();
      $server_version   = (string)variable_get('cas_version', '2.0');
      $server_cas_server  = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
@@ -572,6 +571,10 @@ function _cas_force_login()
   {
      return true;
   }
+  
+  // DOn't even do the test if cron.php is invoked.  Don't require login.
+  if (base_path().'cron.php'==$_SERVER['PHP_SELF'])
+    return false;
 
   // set the default behavior
   if (variable_get('cas_access',0) == 1)  {
