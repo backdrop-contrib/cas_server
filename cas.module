@@ -514,7 +514,7 @@ function cas_logout()
     $logout_destination .= ':' . $port;
   }
   // Add logout
-  $logout_destination .= $uri . '/logout';
+  $logout_destination .= '/'.$uri . '/logout';
   // If admin has set and enabled a logout destination, add it
   if(variable_get('cas_logout_redirect', 0) && variable_get('cas_logout_destination','')) {
     $logout_destination .= '?service=' . variable_get('cas_logout_destination','');
