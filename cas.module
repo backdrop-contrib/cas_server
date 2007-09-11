@@ -96,6 +96,7 @@ function cas_init() {
          watchdog("user", t('new user: %n (CAS)', array('%n' => $user->name)), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$user->uid"));
          if(($user->uid) && ($user->uid > 0) && $cas_authmap)
          {
+           module_invoke_all('user', 'login', null, $user);
            unset($_SESSION['cas_goto']);
            drupal_goto("user/" . $user->uid . "/edit");
          }
