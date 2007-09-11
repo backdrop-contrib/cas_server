@@ -575,8 +575,8 @@ function _cas_force_login()
      return true;
   }
   
-  // DOn't even do the test if cron.php is invoked.  Don't require login.
-  if (base_path().'cron.php'==$_SERVER['PHP_SELF'])
+  // Don't even do the test if cron.php or xmlrpc.php is invoked.  Don't require login.
+  if (base_path().'cron.php'==$_SERVER['PHP_SELF'] || base_path().'xmlrpc.php'==$_SERVER['PHP_SELF'])
     return false;
 
   // set the default behavior
