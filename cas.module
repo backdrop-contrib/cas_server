@@ -31,7 +31,7 @@ function cas_init() {
          $cas_roles[$key] = $key;
        }
      }
-     phpCAS::setDebug();
+//     phpCAS::setDebug();
      $server_version   = (string)variable_get('cas_version', '2.0');
      $server_cas_server  = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
      $server_port      = (int)variable_get('cas_port', '443');
