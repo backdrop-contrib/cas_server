@@ -12,7 +12,7 @@ Your PHP must have the following modules enabled:
 Drupal modifications
 ---------------------
 1) Enable the CAS module in admin/modules
-2) Set the CAS server parameters in admin/settings/cas
+2) Set the CAS server parameters in admin/user/cas
 3) Enable the CAS login block to provide authentication. 
 4) Test authentication
 5) Remove regular user login block
