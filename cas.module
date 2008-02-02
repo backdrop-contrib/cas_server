@@ -16,7 +16,7 @@ define('CAS_CA_VERIFY','ca_verify');
 * Traps a page load to see if authentication is required.
 */
 
-function cas_init() {
+function cas_login_check() {
   global $user, $account;
 
   if ($user->uid) {
@@ -203,7 +203,7 @@ function cas_help($section) {
 function cas_menu($may_cache) {
   global $user;
   $items = array();
-
+  cas_login_check(); 
   if ($may_cache) {
     $items[] = array(
       'path' => 'admin/user/cas',
