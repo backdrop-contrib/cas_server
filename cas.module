@@ -109,12 +109,13 @@ function cas_login_check() {
            $user_default['mail'] = $cas_name . '@' . $cas_domain;
            
          // Become user 1 to be able to save profile information
+         session_save_session(false); 
          $admin = array('uid'=> 1);
          $user = user_load($admin);
 
          // now save the user and become the new user. 
          $user = user_save("", $user_default);
-
+         $sesion_save_session(true); 
          watchdog("user", t('new user: %n (CAS)', array('%n' => $user->name)), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$user->uid"));
          if(($user->uid) && ($user->uid > 0) && $cas_authmap)
          {
