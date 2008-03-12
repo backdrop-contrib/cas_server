@@ -118,6 +118,18 @@ function cas_login_check() {
 
      $cas_name = phpCAS::getUser();
 
+     // blocked user check
+     if (user_is_blocked($cas_name)) {
+      // blocked in user administration
+       drupal_set_message("The username $cas_name has been blocked.", "error");
+       return;
+     }
+     else if (drupal_is_denied('user', $cas_name)) {
+       // denied by access controls
+       drupal_set_message("The name $cas_name is a reserved username.", "error");
+       return;
+     }
+     
      // try to log into Drupal
      if($cas_authmap) { // users are coming from Drupal; no need to use the external_load and the authmap
          $user = user_load(array("name" => $cas_name));
