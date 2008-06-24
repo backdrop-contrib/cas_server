@@ -756,12 +756,12 @@ function cas_form_alter(&$form, $formid, $form_state) {
         */
         
         if (variable_get('cas_useldap', '')) {
-          global $ldap, $user;
+          global $ldapauth_ldap, $user;
           if ($ldap_config_name = _get_ldap_config_name($user->name)) {
             _ldapauth_init($ldap_config_name);
-            $ldap->connect();
+            _ldapauth_user_lookup($user->name);
             $cas_ldap_email_attribute = (string)variable_get('cas_ldap_email_attribute', 'mail');
-            $ldap_entries = $ldap->search($ldap->getOption('basedn'), $ldap->getOption('user_attr') .'='. $user->name, array($cas_ldap_email_attribute));
+            $ldap_entries = $ldapauth_ldap->search($ldapauth_ldap->getOption('basedn'), $ldapauth_ldap->getOption('user_attr').'='.$user->name, array($cas_ldap_email_attribute));
             if ($ldap_entries['count'] == 1 && isset($ldap_entries[0][$cas_ldap_email_attribute][0])) if (trim($ldap_entries[0][$cas_ldap_email_attribute][0]) != '') {
               $form['account']['mail']['#type'] = 'hidden';
               $form['account']['mail']['#value'] = $ldap_entries[0][$cas_ldap_email_attribute][0];
