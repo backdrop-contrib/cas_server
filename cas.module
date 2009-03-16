@@ -1,9 +1,8 @@
 <?php
 // $Id$
 
-
 /**
- * Enables users to authenticate via a Central Authentication Service (CAS)
+ * @file Enables users to authenticate via a Central Authentication Service (CAS)
  * Cas will currently work if the auto registration is turned on and will
  * create user accounts automatically.
  */
@@ -77,9 +76,9 @@ function cas_init() {
  */
 function cas_menu_check() {
   global $user;
-  $access = false;
+  $access = FALSE;
   if ($user->uid == 0) $access = TRUE;
-  if (strpos($_GET['q'], 'admin/build/menu') !== false) {
+  if (strpos($_GET['q'], 'admin/build/menu') !== FALSE) {
     $access = TRUE;
   }
   return $access;
@@ -92,8 +91,8 @@ function cas_menu_check() {
  */
 function cas_menu_logout_check() {
   global $user;
-  $access = false;
-  if ($user->uid) $access = true;
+  $access = FALSE;
+  if ($user->uid) $access = TRUE;
   return $access;
 }
 
@@ -225,23 +224,23 @@ function cas_login_check() {
         if ($cas_domain) $user_default['mail'] = $cas_name .'@'. $cas_domain;
         
         // Become user 1 to be able to save profile information
-        session_save_session(false);
+        session_save_session(FALSE);
         $admin = array('uid' => 1);
         $user = user_load($admin);
         
         // now save the user and become the new user.
         $user = user_save("", $user_default);
-        session_save_session(true);
+        session_save_session(TRUE);
         watchdog("user", 'new user: %n (CAS)', array('%n' => $user->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$user->uid"));
         if (($user->uid) && ($user->uid > 0) && $cas_authmap) {
-          module_invoke_all('user', 'login', null, $user);
+          module_invoke_all('user', 'login', NULL, $user);
           unset($_SESSION['cas_goto']);
           watchdog('user', 'Session opened for %name.', array('%name' => $user->name));
           drupal_goto("user/". $user->uid ."/edit");
         }
         
         // Set a session variable to denote this the initial login
-        $_SESSION['cas_first_login'] = true;
+        $_SESSION['cas_first_login'] = TRUE;
       }
     }
     
@@ -254,8 +253,8 @@ function cas_login_check() {
       if (variable_get('cas_useldap_groups', '')) {
         if ($ldap_config_name = _get_ldap_config_name($user->name)) {
           _ldapauth_init($ldap_config_name);
-          include_once ('modules/ldap_integration/ldapgroups.module');
-          $user->ldap_authentified = true;
+          include_once('modules/ldap_integration/ldapgroups.module');
+          $user->ldap_authentified = TRUE;
           ldapgroups_user_login($user);
         }
       }
@@ -264,19 +263,18 @@ function cas_login_check() {
       ** LDAPAuth interfacing - END
       */
       
-      /*
+    /*
  	  ** CAS Sigle Sign Out - BEGIN
  	  */
       
-      if (variable_get('cas_signout', false)) {
-      	_cas_single_sign_out_save_token($user, $cas_service_ticket);
-      }
+    if (variable_get('cas_signout', FALSE)) {
+      _cas_single_sign_out_save_token($user, $cas_service_ticket);
+    }
       
       /*
- 	  ** CAS Sigle Sign Out - END
- 	  */
- 	   
-      
+       * CAS Single Sign Out - END
+       */
+
       // update the roles and reset the password
       $roles = $user->roles;
       foreach ($cas_roles as $role) {
@@ -288,7 +286,7 @@ function cas_login_check() {
       );
       $user = user_save($user, $user_up);
       
-      module_invoke_all('user', 'login', null, $user);
+      module_invoke_all('user', 'login', NULL, $user);
       drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
       watchdog('user', 'Session opened for %name.', array('%name' => $user->name));
       // We can't count on the menu because we're changing login states.
@@ -365,8 +363,8 @@ function cas_admin_settings() {
   $form['server'] = array(
     '#type' => 'fieldset',
     '#title' => t('CAS server settings'),
-    '#collapsible' => true,
-    '#collapsed' => false,
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
   );
   
   $form['server']['cas_version'] = array(
@@ -418,18 +416,18 @@ function cas_admin_settings() {
   );
   
   $form['server']['cas_signout'] = array(
-	'#type' => 'checkbox',
-	'#title' => t('Enable CAS Single Sign Out (CAS server 3.1 or greater)'),
-	'#default_value' => variable_get('cas_signout', false),
-	'#description' => t('For more details see <a href="http://www.ja-sig.org/wiki/display/CASUM/Single+Sign+Out">http://www.ja-sig.org/wiki/display/CASUM/Single+Sign+Out</a>.'),
+    '#type' => 'checkbox',
+    '#title' => t('Enable CAS Single Sign Out (CAS server 3.1 or greater)'),
+    '#default_value' => variable_get('cas_signout', FALSE),
+    '#description' => t('For more details see <a href="http://www.ja-sig.org/wiki/display/CASUM/Single+Sign+Out">http://www.ja-sig.org/wiki/display/CASUM/Single+Sign+Out</a>.'),
   );
   
   
   $form['account'] = array(
     '#type' => 'fieldset',
     '#title' => t('User account settings'),
-    '#collapsible' => true,
-    '#collapsed' => true,
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
   );
   
   $form['account']['cas_authmap'] = array(
@@ -480,8 +478,8 @@ function cas_admin_settings() {
     '#type' => 'select',
     '#title' => t('Auto-assign users to the role(s)'),
     '#default_value' => variable_get('cas_auto_assigned_role', array(DRUPAL_AUTHENTICATED_RID)),
-    '#options' => user_roles(true),
-    '#multiple' => true,
+    '#options' => user_roles(TRUE),
+    '#multiple' => TRUE,
     '#description' => t('This value can be used to establish a role automatically for all CAS users.  As an example, if you are also using the simple_ldap module, you can use this role to establish a tie between CAS and LDAP-populated data.  i.e. Users with the role of \'cas:user\' should have their LDAP data updated automatically.'),
   );
   
@@ -489,8 +487,8 @@ function cas_admin_settings() {
   $form['pages'] = array(
     '#type' => 'fieldset',
     '#title' => t('Redirection settings'),
-    '#collapsible' => true,
-    '#collapsed' => true,
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
   );
   
   $form['pages']['cas_access'] = array(
@@ -555,8 +553,8 @@ function cas_admin_settings() {
   $form['misc'] = array(
     '#type' => 'fieldset',
     '#title' => t('Miscellaneous settings'),
-    '#collapsible' => true,
-    '#collapsed' => true,
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
   );
   
   $form['misc']['cas_changePasswordURL'] = array(
@@ -577,8 +575,8 @@ function cas_admin_settings() {
   $form['ldap'] = array(
     '#type' => 'fieldset',
     '#title' => t('LDAP settings'),
-    '#collapsible' => true,
-    '#collapsed' => true,
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
   );
   
   $form['ldap']['cas_useldap'] = array(
@@ -675,7 +673,7 @@ function cas_logout() {
     $logout_destination .= ':'. $port;
   }
   // Add logout
-  $logout_destination .= '/'. trim($uri,'/') .'/logout';
+  $logout_destination .= '/'. trim($uri, '/') .'/logout';
   
   // Add destination override so that a destination can be specified on the logout link
   // e.g. caslogout?desination=http://foo.bar.com/foobar
@@ -695,7 +693,7 @@ function cas_logout() {
   // The three variables are a hack because cas server implementations don't seem to be consistent with
   // its use. 
   if ($destination) {
-    $logout_destination .= '?destination='. $destination .'&service='.$destination .'&url='.$destination;
+    $logout_destination .= '?destination='. $destination .'&service='. $destination .'&url='. $destination;
   }
   
   // Go to the constructed logout destination
@@ -745,11 +743,11 @@ function _cas_force_login() {
   list($arg0) = split('/', $_GET['q']);
   // Don't even do the test if we're hitting the cas page
   if ($arg0 == "cas") {
-    return true;
+    return TRUE;
   }
   
   // Don't even do the test if cron.php or xmlrpc.php is invoked.  Don't require login.
-  if (base_path() .'cron.php' == $_SERVER['PHP_SELF'] || base_path() .'xmlrpc.php' == $_SERVER['PHP_SELF']) return false;
+  if (base_path() .'cron.php' == $_SERVER['PHP_SELF'] || base_path() .'xmlrpc.php' == $_SERVER['PHP_SELF']) return FALSE;
   
   // set the default behavior
   if (variable_get('cas_access', 0) == 1) {
@@ -768,8 +766,8 @@ function _cas_force_login() {
     
     // Alter the default
     if ($path_match) {
-      if ($force_login) $force_login = false;
-      else $force_login = true;
+      if ($force_login) $force_login = FALSE;
+      else $force_login = TRUE;
     }
   }
   
@@ -800,7 +798,7 @@ function cas_form_alter(&$form, $formid, $form_state) {
             _ldapauth_init($ldap_config_name);
             _ldapauth_user_lookup($user->name);
             $cas_ldap_email_attribute = (string)variable_get('cas_ldap_email_attribute', 'mail');
-            $ldap_entries = $ldapauth_ldap->search($ldapauth_ldap->getOption('basedn'), $ldapauth_ldap->getOption('user_attr').'='.$user->name, array($cas_ldap_email_attribute));
+            $ldap_entries = $ldapauth_ldap->search($ldapauth_ldap->getOption('basedn'), $ldapauth_ldap->getOption('user_attr') .'='. $user->name, array($cas_ldap_email_attribute));
             if ($ldap_entries['count'] == 1 && isset($ldap_entries[0][$cas_ldap_email_attribute][0])) if (trim($ldap_entries[0][$cas_ldap_email_attribute][0]) != '') {
               $form['account']['mail']['#type'] = 'hidden';
               $form['account']['mail']['#value'] = $ldap_entries[0][$cas_ldap_email_attribute][0];
@@ -838,8 +836,8 @@ function cas_form_alter(&$form, $formid, $form_state) {
  * LDAP Auxiliary functions
  */
 function _get_ldap_config_name($user_name) {
-  include_once ('modules/ldap_integration/ldapauth.module');
-  $user_found = false;
+  include_once('modules/ldap_integration/ldapauth.module');
+  $user_found = FALSE;
   $result = db_query("SELECT name FROM {ldapauth} WHERE status = '%d' ORDER BY sid", 1);
   while ($row = db_fetch_object($result)) {
     // cycle thru the authentication schemes - first successful one wins
@@ -847,12 +845,12 @@ function _get_ldap_config_name($user_name) {
     _ldapauth_init($row->name);
     $ldap_user_entry = _ldapauth_user_lookup($user_name);
     if ($ldap_user_entry) {
-      $user_found = true;
+      $user_found = TRUE;
       break;
     }
   }
   if ($user_found) return $row->name;
-  else return false;
+  else return FALSE;
 }
 
 /*
@@ -860,39 +858,38 @@ function _get_ldap_config_name($user_name) {
 */
 
 /*
-** CAS Sigle Sign Out - BEGIN
-*/
-
+ * CAS Sigle Sign Out - BEGIN
+ */
 function _cas_single_sign_out_check() {
-	if (variable_get('cas_signout', false) && array_key_exists("logoutRequest", $_POST)) {
-		$casLogoutRequestXmlString = utf8_encode($_POST["logoutRequest"]);          // it's important!
-		if ($casLogoutRequestXml = domxml_open_mem($casLogoutRequestXmlString)) {
-	  		$casSessionIndexes = $casLogoutRequestXml->get_elements_by_tagname( "SessionIndex" );
-			if ($casSessionIndexes[0] != null) {
-				$casSessionIndex = $casSessionIndexes[0]->get_content();
-				// Log them out now.
-				// first lets find out who we want to log off
-				$result = db_query_range("SELECT cld.uid FROM {cas_login_data} cld WHERE cld.cas_session_id = '%s'", $casSessionIndex, 0, 1);
-				if ($result !== false) {
-					while ($cas_login_data = db_fetch_object($result)) {
-						$uid = $cas_login_data->uid;
-						// remove all entry for user id in cas_login_data
-						db_query("DELETE FROM {cas_login_data} WHERE uid = %d", $uid);
-						// remove their session
-						db_query("DELETE FROM {sessions} WHERE uid = %d", $uid);
-			  		}
-				}
-			}
-		}
-	}
+  if (variable_get('cas_signout', FALSE) && array_key_exists("logoutRequest", $_POST)) {
+    $cas_logout_request_xml_string = utf8_encode($_POST["logoutRequest"]);     // it's important!
+    if ($cas_logout_request_xml = domxml_open_mem($cas_logout_request_xml_string)) {
+      $cas_session_indexes = $cas_logout_request_xml->get_elements_by_tagname( "SessionIndex" );
+      if ($cas_session_indexes[0] != NULL) {
+        $cas_session_index = $cas_session_indexes[0]->get_content();
+        // Log them out now.
+        // first lets find out who we want to log off
+        $result = db_query_range("SELECT cld.uid FROM {cas_login_data} cld WHERE cld.cas_session_id = '%s'", $cas_session_index, 0, 1);
+        if ($result !== FALSE) {
+          while ($cas_login_data = db_fetch_object($result)) {
+            $uid = $cas_login_data->uid;
+            // remove all entry for user id in cas_login_data
+            db_query("DELETE FROM {cas_login_data} WHERE uid = %d", $uid);
+            // remove their session
+            db_query("DELETE FROM {sessions} WHERE uid = %d", $uid);
+            }
+        }
+      }
+    }
+  }
 }
 
 function _cas_single_sign_out_save_token($user, $cas_sign_out_token) {
-	// Ok lets save the CAS service ticket to DB so 
-	// we can handle CAS logoutRequests when they come
-	if ($user->uid && $user->uid > 0 && !empty($cas_sign_out_token)) {
-		db_query("INSERT INTO {cas_login_data} (cas_session_id, uid) VALUES ('%s', %d)", $cas_sign_out_token, $user->uid);
-	}
+  // Ok lets save the CAS service ticket to DB so 
+  // we can handle CAS logoutRequests when they come
+  if ($user->uid && $user->uid > 0 && !empty($cas_sign_out_token)) {
+    db_query("INSERT INTO {cas_login_data} (cas_session_id, uid) VALUES ('%s', %d)", $cas_sign_out_token, $user->uid);
+  }
 }
 
 /*

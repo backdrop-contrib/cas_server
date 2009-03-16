@@ -1,6 +1,16 @@
 <?php
-// cas.install
+// $Id$
 
+/**
+ * @file CAS Install 
+ *
+ */
+
+
+/**
+ * Inastall db tables. 
+ *
+ */
 function cas_install() {
   switch ($GLOBALS['db_type']) {
     case 'mysql':
@@ -34,13 +44,13 @@ function cas_update_1() {
   switch ($GLOBALS['db_type']) {
     case 'mysql':
     case 'mysqli':
-      $items = array();
-  	  $items[] = update_sql("CREATE TABLE {cas_login_data} (
-		  cas_session_id varchar(256) NOT NULL default '',
-		  uid int unsigned NOT NULL,
-          PRIMARY KEY  (cas_session_id)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-  	  return $items;
+    $items = array();
+    $items[] = update_sql("CREATE TABLE {cas_login_data} (
+      cas_session_id varchar(256) NOT NULL default '',
+      uid int unsigned NOT NULL,
+        PRIMARY KEY  (cas_session_id)
+      ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
+      return $items;
       break;
 
     case 'pgsql':
@@ -63,9 +73,7 @@ function cas_update_1() {
 
 function cas_uninstall() {
   if ($GLOBALS['db_type'] == 'pgsql') {
-	db_query('DROP INDEX {cas_login_data}_uid_idx');
+    db_query('DROP INDEX {cas_login_data}_uid_idx');
   }
   db_query('DROP TABLE {cas_login_data}');
 }
-
-?>
