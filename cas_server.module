@@ -39,7 +39,7 @@ function cas_server_service_return() {
   global $user; 
   $service = $_COOKIE[CAS_LOGIN_COOKIE]; 
   if ($service && $user->uid) { 
-    $ticket = _cas_server_save_ticket($user->uid,$service); 
+    $ticket = _cas_server_save_ticket($user->uid, $service); 
     setcookie(CAS_LOGIN_COOKIE, "", -3600); 
     drupal_goto($service, 'ticket='. urlencode($ticket)); 
   }
@@ -56,8 +56,7 @@ function cas_server_login() {
     if ($_GET['service']) { 
       $_COOKIE[CAS_LOGIN_COOKIE] = $_REQUEST['service'];
     }
-    $output=t('You have successfully logged into CAs'); 
-    $output .= 'Cookie:<pre>'. print_r($_COOKIE,1). '</pre>'; 
+    $output=t('You have successfully logged into CAS'); 
     cas_server_service_return();   
   }
   else {
@@ -69,8 +68,8 @@ function cas_server_login() {
       if ($_GET['service']) { 
         setcookie(CAS_LOGIN_COOKIE, $_REQUEST['service']);
       } 
-      $output .= l('Login','user',array('query' => 'destination=cas/login'));
-      drupal_goto('user','destination=cas/login');
+      $output .= l('Login', 'user', array('query' => 'destination=cas/login'));
+      drupal_goto('user', 'destination=cas/login');
     }
   } 
   return $output; 
@@ -113,7 +112,7 @@ function cas_server_service_validate() {
           "    <cas:user>$user_name</cas:user>\n".
           "  </cas:authenticationSuccess>\n".
           "</cas:serviceResponse>\n"; 
-    watchdog('cas','User '. $user_name. ' CAS sucessully authenticated.'); 
+    watchdog('cas', 'User '. $user_name .' CAS sucessully authenticated.'); 
   } 
   else {
     print "<cas:serviceReponse xmlns:cas='http://www.yale.edu/tp/cas'>\n".
@@ -121,7 +120,7 @@ function cas_server_service_validate() {
           "     Ticket $ticket not recognized.\n".
           "  </cas:authenticationFailure>".
           "</cas:serviceResponse>"; 
-    watchdog('cas','User '. $user_name. ' authentication failed!'); 
+    watchdog('cas', 'User '. $user_name .' authentication failed!'); 
   }
 }
 
@@ -134,14 +133,14 @@ function cas_server_service_validate() {
 function _cas_server_validate($service, $ticket) { 
   // Look up the ticket
   $user_name=''; 
-  $ticket_info=array($service,$ticket); 
+  $ticket_info=array($service, $ticket); 
   $result = db_query_range("SELECT u.name FROM {cas_server_tickets} t JOIN {users} u ON t.uid=u.uid  WHERE t.service = '%s' and t.ticket = '%s'", $ticket_info, 0, 1);
   if ($result !== FALSE) {
     while ($ticket_data = db_fetch_object($result)) {
       $user_name = $ticket_data->name; 
     }
   }
-  db_query("DELETE FROM {cas_server_tickets} WHERE ticket='%s'",array($ticket)); 
+  db_query("DELETE FROM {cas_server_tickets} WHERE ticket='%s'", array($ticket)); 
 
   return $user_name; 
 }
