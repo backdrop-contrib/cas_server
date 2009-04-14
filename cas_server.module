@@ -6,7 +6,6 @@
  */
 define('CAS_LOGIN_COOKIE', 'cas_server_login'); 
 
-
 /**
  * Implementation of hook_menu
  */
@@ -16,7 +15,7 @@ function cas_server_menu() {
     'page callback' => 'cas_server_login',
     'title' => t('CAS Login'),
     'access callback' => TRUE,
-    'type' => MENU_NORMAL_ITEM,
+    'type' => MENU_CALLBACK,
   ); 
 
   $items['cas/validate'] = array(
@@ -29,6 +28,13 @@ function cas_server_menu() {
   $items['cas/serviceValidate'] = array(
     'page callback' => 'cas_server_service_validate',
     'title' => t('CAS Service Validate'), 
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  ); 
+  
+  $items['cas/logout'] = array(
+    'page callback' => 'cas_server_logout', 
+    'title' => t('CAS Logout'),
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   ); 
@@ -161,4 +167,17 @@ function _cas_server_save_ticket($uid, $service) {
     db_query("INSERT INTO {cas_server_tickets} (uid, service, ticket, timestamp) VALUES (%d, '%s', '%s', %d)", $ticket_data);
   }
   return $ticket; 
+}
+/**
+ * Cas Logout
+ * @TODO: Implement single sign out support
+ */
+function cas_server_logout() { 
+  // Destroy the current session:
+  session_destroy();
+  module_invoke_all('user', 'logout', NULL, $user);
+  $output = '<p>You have been logged out successfully</p>'; 
+  if ($_GET['url'])  {
+    $output .= '<p>'. l('Continue', $_GET['url']) .'</p>'; 
+  }
 }
