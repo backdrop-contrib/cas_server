@@ -653,7 +653,8 @@ function cas_login_page() {
 function cas_logout() {
   global $user;
   
-  watchdog('user', 'Session closed for %name.', array('%name' => theme('placeholder', $user->name)));
+  watchdog('user', 'Session closed for %name.', array('%name' => $user->name));
+  
   
   // Destroy the current session:
   session_destroy();
