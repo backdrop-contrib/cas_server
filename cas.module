@@ -820,7 +820,10 @@ function cas_form_alter(&$form, $form_state, $form_id) {
       if (variable_get('cas_hide_email', 0)) {
         if (variable_get('cas_domain', '')) {
           $form['account']['mail']['#type'] = 'hidden';
-          $form['account']['mail']['#value'] = $form['account']['name']['#default_value'] .'@'. variable_get('cas_domain', '');
+          $form['account']['mail']['#value'] = $form['account']['mail']['#default_value']; 
+          if (!$form['account']['mail']['#default_value']) {
+            $form['account']['mail']['#value'] = $form['account']['name']['#default_value'] .'@'. variable_get('cas_domain', '');
+          }
         }
         
         /*
