@@ -690,7 +690,8 @@ function cas_logout() {
     $logout_destination .= ':'. $port;
   }
   // Add logout
-  $logout_destination .= '/'. trim($uri, '/') .'/logout';
+  if ($uri) $logout_destination .= '/'. trim($uri, '/'); 
+  $logout_destination .= '/logout';
   
   // Add destination override so that a destination can be specified on the logout link
   // e.g. caslogout?desination=http://foo.bar.com/foobar
