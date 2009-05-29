@@ -779,9 +779,10 @@ function _cas_force_login() {
  * implementation of hook_form_alter
  * Overrides specific from settings based on user policy.
  */
-function cas_form_alter(&$form, $formid, $form_state) {
+function cas_form_alter(&$form, $form_state, $form_id) {
+  //drupal_set_message($form_id.'<pre>'.print_r($form,1).'</pre>');
   switch ($form_id) {
-    case 'user_edit':
+    case 'user_profile_form':
       //make the email field hidden and force the value to the default.
       if (variable_get('cas_hide_email', 0)) {
         if (variable_get('cas_domain', '')) {
