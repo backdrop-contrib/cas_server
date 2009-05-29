@@ -287,8 +287,9 @@ function cas_login_check() {
       foreach ($cas_roles as $role) {
         $roles[$role] = $role;
       }
+      /* Removing password cause it cases problems with phpcas. */ 
       $user_up = array(
-        "pass" => user_password(),
+ //       "pass" => user_password(),
         "roles" => $roles,
       );
       $user = user_save($user, $user_up);
