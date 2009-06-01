@@ -570,7 +570,7 @@ function cas_admin_settings() {
     '#default_value' => variable_get('cas_logout_destination', ''),
     '#size' => 30,
     '#maxlength' => 55,
-    '#description' => t("URL. An example URL is '<em>http://www.example.com</em>'."),
+    '#description' => t("URL. An example URL is '<em>http://www.example.com</em>'. You can also use '&lt;front&gt;' for the front page."),
   );
   
   
@@ -662,12 +662,11 @@ function cas_login_page() {
   }
   elseif ($_SESSION['cas_goto']) {
     $destination = $_SESSION['cas_goto'];
-    unset($_SESSION['cas_goto']);
   }
+  unset($_SESSION['cas_goto']);
   drupal_goto($destination);
   // this should never happen.
   $output .= t("Cas page... you should never get here");
-  drupal_set_message('hi');
   return $output;
 }
 
@@ -705,6 +704,9 @@ function cas_logout() {
   // e.g. caslogout?desination=http://foo.bar.com/foobar
   // do not accept caslogout as a valid destination, since that may cause a redirect loop
   $destination = preg_replace("/(destination=|caslogout)/", "", drupal_get_destination());
+  
+  //Make it an absolute url.  This will also convert <front> to the front page.
+  $destination = url($destination, array('absolute' => TRUE));
 
   // If there was no override and admin has set and enabled a logout destination, look for it
   if (empty($destination) && variable_get('cas_logout_redirect', 0)) {
