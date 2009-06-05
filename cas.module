@@ -103,13 +103,32 @@ function cas_menu_logout_check() {
 function cas_login_check() {
   global $user, $account;
   
+  
   if ($user->uid) {
-    //do nothing because user is already logged into Drupal
+    //Don't Login  because we already are
+    return; 
   }
-  elseif (_cas_force_login()) {
+  
+  // Determine whether we should check for long
+  $cas_check_first = variable_get('cas_check_first',1); 
+  
+  if ($_COOKIE['cas_login_checked']) { 
+    $cas_check_first = 0; 
+  }
+  
+  $cas_force_login = _cas_force_login(); 
+  
+  if ($cas_force_login || $cas_check_first) {
+    // Variable set
     $cas_user_register = variable_get('cas_user_register', 1);
     $cas_authmap       = variable_get('cas_authmap', 0);
-    
+    $server_version    = (string)variable_get('cas_version', '2.0');
+    $server_cas_server = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
+    $server_port       = (int)variable_get('cas_port', '443');
+    $server_uri        = (string)variable_get('cas_uri', '');
+    $cas_domain        = (string)variable_get('cas_domain', '');
+    $cas_cert_verify   = (string)variable_get('cas_cert_verify', CAS_NO_VERIFY);
+    $cas_cert          = (string)variable_get('cas_cert', '');
     $all_roles         = user_roles();
     $cas_roles         = array();
     foreach ($all_roles as $key => $value) {
@@ -120,13 +139,6 @@ function cas_login_check() {
     if ( ($debugFile = variable_get("cas_debugfile","")) != "" ) {
       phpCAS::setDebug($debugFile);
     }
-    $server_version    = (string)variable_get('cas_version', '2.0');
-    $server_cas_server = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
-    $server_port       = (int)variable_get('cas_port', '443');
-    $server_uri        = (string)variable_get('cas_uri', '');
-    $cas_domain        = (string)variable_get('cas_domain', '');
-    $cas_cert_verify   = (string)variable_get('cas_cert_verify', CAS_NO_VERIFY);
-    $cas_cert          = (string)variable_get('cas_cert', '');
     // Drupal takes care of its own session
     $start_session = (boolean)FALSE;
     cas_save_page();
@@ -161,14 +173,25 @@ function cas_login_check() {
       }
     }
     
-    // using function check for backward compatibility of the cas libraries.
-    // Newer versions of the cas client use authenticateIfNeeded,
-    // but older versions use forceAuthentication
-    if (is_callable(array(phpCAS, 'authenticateIfNeeded'))) {
-      phpCAS::authenticateIfNeeded();
-    }
-    else {
-      phpCAS::forceAuthentication();
+    // We're going to try phpCAS auth test
+    if (!$cas_force_login) {
+      $logged_in = phpCAS::checkAuthentication(); 
+      // Set the login tested cookie
+      setcookie('cas_login_checked','true'); 
+      
+      // We're done cause we're not logged in. 
+      if (!$logged_in) return; 
+      
+    } else { 
+      // using function check for backward compatibility of the cas libraries.
+      // Newer versions of the cas client use authenticateIfNeeded,
+      // but older versions use forceAuthentication
+      if (is_callable(array(phpCAS, 'authenticateIfNeeded'))) {
+        phpCAS::authenticateIfNeeded();
+      }
+      else {
+        phpCAS::forceAuthentication();
+      }
     }
     
     $cas_name = phpCAS::getUser();
@@ -424,6 +447,13 @@ function cas_admin_settings() {
     '#title' => t('CAS URI'),
     '#default_value' => variable_get('cas_uri', ''),
     '#size' => 30, '#description' => 'If CAS is not at the root of the host, include a URI (e.g., /cas).',
+  );
+  
+  $form['server']['cas_check_first'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Check to see if a user is allready logged in?'),
+    '#default_value' => variable_get('cas_check_first', 0),
+    '#description' => t('This check is performed once the first time a user visits your site, so that the local drupal logout is still useful for site admins. ')
   );
   
   $form['server']['cas_verify'] = array(
