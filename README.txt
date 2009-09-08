@@ -1,4 +1,4 @@
-phpCAS is available directly from http://esup-phpcas.sourceforge.net/. phpCAS is distributed under the LGPL license.
+phpCAS is available directly from http://www.ja-sig.org/wiki/display/CASC/phpCAS. phpCAS is distributed under the LGPL license.
 
 You must download and install phpCAS library in order for this CAS module to work.  You may either 
 place a copy your modules/cas directory, or make sure it is in you PHP includes path/directory. 
