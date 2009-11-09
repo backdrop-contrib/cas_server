@@ -275,7 +275,7 @@ function cas_login_check() {
         session_save_session(TRUE);
         watchdog("user", 'new user: %n (CAS)', array('%n' => $user->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$user->uid"));
         if (($user->uid) && ($user->uid > 0) && $cas_authmap) {
-          module_invoke_all('user', 'login', NULL, $user);
+          module_user_invoke_( 'login', NULL, $user);
           unset($_SESSION['cas_goto']);
           watchdog('user', 'Session opened for %name.', array('%name' => $user->name));
           drupal_goto("user/". $user->uid ."/edit");
@@ -295,7 +295,7 @@ function cas_login_check() {
       if (variable_get('cas_useldap_groups', '')) {
         if ($ldap_config_name = _get_ldap_config_name($user->name)) {
           _ldapauth_init($ldap_config_name);
-          include_once('modules/ldap_integration/ldapgroups.module');
+          module_load_include('module', 'ldap_integration', 'ldapgroups');
           $user->ldap_authentified = TRUE;
           ldapgroups_user_login($user);
         }
@@ -333,7 +333,7 @@ function cas_login_check() {
       if (module_exists('persistent_login') && $_SESSION['cas_remember']) {
         $edit['persistent_login'] = 1;
       }
-      module_invoke_all('user', 'login', $edit, $user);
+      module_user_invoke('login', $edit, $user);
       drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
       if ($edit['persistent_login'] == 1) {
         drupal_set_message(t('You will remain logged in on this computer even after you close your browser.'));
@@ -753,7 +753,7 @@ function cas_logout() {
   
   // Destroy the current session:
   session_destroy();
-  module_invoke_all('user', 'logout', NULL, $user);
+  module_user_invoke('user', 'logout', NULL, $user);
   
   // We have to use $GLOBALS to unset a global variable:
   $user   = user_load(array('uid' => 0));
@@ -778,7 +778,7 @@ function cas_logout() {
   $destination = preg_replace("/(destination=|caslogout)/", "", drupal_get_destination());
   
   //Make it an absolute url.  This will also convert <front> to the front page.
-  $destination = url($destination, array('absolute' => TRUE));
+  if ($destination) $destination = url($destination, array('absolute' => TRUE));
 
   // If there was no override and admin has set and enabled a logout destination, look for it
   if (empty($destination) && variable_get('cas_logout_redirect', 0)) {
