@@ -957,7 +957,7 @@ function cas_form_alter(&$form, $form_state, $form_id) {
  * LDAP Auxiliary functions
  */
 function _get_ldap_config_name($user_name) {
-  include_once('modules/ldap_integration/ldapauth.module');
+  module_load_include('module', 'ldap_integration', 'ldapauth');  
   $user_found = FALSE;
   $result = db_query("SELECT name FROM {ldapauth} WHERE status = '%d' ORDER BY sid", 1);
   while ($row = db_fetch_object($result)) {
