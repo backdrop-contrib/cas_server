@@ -274,8 +274,9 @@ function cas_login_check() {
         $user = user_save("", $user_default);
         session_save_session(TRUE);
         watchdog("user", 'new user: %n (CAS)', array('%n' => $user->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$user->uid"));
+        $edit = array(); 
         if (($user->uid) && ($user->uid > 0) && $cas_authmap) {
-          module_user_invoke_( 'login', NULL, $user);
+          user_module_invoke( 'login', $edit, $user);
           unset($_SESSION['cas_goto']);
           watchdog('user', 'Session opened for %name.', array('%name' => $user->name));
           drupal_goto("user/". $user->uid ."/edit");
@@ -333,7 +334,7 @@ function cas_login_check() {
       if (module_exists('persistent_login') && $_SESSION['cas_remember']) {
         $edit['persistent_login'] = 1;
       }
-      module_user_invoke('login', $edit, $user);
+      user_module_invoke('login', $edit, $user);
       drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
       if ($edit['persistent_login'] == 1) {
         drupal_set_message(t('You will remain logged in on this computer even after you close your browser.'));
@@ -753,7 +754,8 @@ function cas_logout() {
   
   // Destroy the current session:
   session_destroy();
-  module_user_invoke('user', 'logout', NULL, $user);
+  $edit = array(); 
+  user_module_invoke( 'logout', $edit, $user);
   
   // We have to use $GLOBALS to unset a global variable:
   $user   = user_load(array('uid' => 0));
