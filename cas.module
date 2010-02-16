@@ -861,7 +861,7 @@ function cas_login_form_submit($form, &$form_state) {
  */
 function _cas_force_login() {
   
-  list($arg0) = split('/', $_GET['q']);
+  list($arg0) = explode('/', $_GET['q']);
   // Don't even do the test if we're hitting the cas page
   if ($arg0 == "cas") {
     return TRUE;
