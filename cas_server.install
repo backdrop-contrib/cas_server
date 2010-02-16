@@ -79,21 +79,6 @@ function cas_server_update_1() {
   }
 }
 
-function cas_server_update_2() {
-  $ret = array();
-  db_drop_primary_key($ret, 'cas_server_tickets');
-  db_change_field($ret, 'cas_server_tickets', 'ticket', 'ticket', array(
-    'type' => 'varchar',
-    'length' => '255',
-    'not null' => TRUE,
-  ), array('primary key' => array('ticket')));
-  db_change_field($ret, 'cas_server_tickets', 'service', 'service', array(
-    'type' => 'varchar',
-    'length' => '255',
-    'not null' => TRUE,
-  ));
-}
-
 function cas_server_uninstall() {
   if ($GLOBALS['db_type'] == 'pgsql') {
     db_query('DROP INDEX {cas_server_tickets}_uid_idx');
