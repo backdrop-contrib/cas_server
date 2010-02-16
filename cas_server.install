@@ -18,8 +18,8 @@ function cas_server_install() {
       // the {tablename} syntax is so multisite installs can add a
       // prefix to the table name as set in the settings.php file
       db_query("CREATE TABLE {cas_server_tickets} (
-      service varchar(256) NOT NULL default '',
-		  ticket varchar(256) NOT NULL default '',
+      service varchar(255) NOT NULL default '',
+		  ticket varchar(255) NOT NULL default '',
 		  uid int unsigned NOT NULL,
 		  timestamp int NOT NULL, 
           PRIMARY KEY  (ticket)
@@ -28,8 +28,8 @@ function cas_server_install() {
 
     case 'pgsql':
       db_query("CREATE TABLE {cas_server_tickets} (
-        service varchar(256) NOT NULL default '',
-        ticket varchar(256) NOT NULL default '',
+        service varchar(255) NOT NULL default '',
+        ticket varchar(255) NOT NULL default '',
         uid integer NOT NULL CHECK (uid >= 0),
         timestamp integer NOT NULL, 
           PRIMARY KEY  (ticket)
@@ -50,8 +50,8 @@ function cas_server_update_1() {
     case 'mysqli':
     $items = array();
     $items[] = update_sql("CREATE TABLE {cas_server_tickets} (
-      service varchar(256) NOT NULL default '',
-      ticket varchar(256) NOT NULL default '',
+      service varchar(255) NOT NULL default '',
+      ticket varchar(255) NOT NULL default '',
       uid int unsigned NOT NULL,
       timestamp int NOT NULL,
         PRIMARY KEY  (ticket)
@@ -62,8 +62,8 @@ function cas_server_update_1() {
     case 'pgsql':
       $items = array();
       $items[] = update_sql("CREATE TABLE {cas_server_tickets} (
-          service varchar(256) NOT NULL default '',
-          ticket varchar(256) NOT NULL default '',
+          service varchar(255) NOT NULL default '',
+          ticket varchar(255) NOT NULL default '',
        	  uid integer NOT NULL CHECK (uid >= 0),
        	  timestamp integer NOT NULL, 
           PRIMARY KEY  (ticket)
@@ -77,6 +77,21 @@ function cas_server_update_1() {
       return $items;
       break;
   }
+}
+
+function cas_server_update_2() {
+  $ret = array();
+  db_drop_primary_key($ret, 'cas_server_tickets');
+  db_change_field($ret, 'cas_server_tickets', 'ticket', 'ticket', array(
+    'type' => 'varchar',
+    'length' => '255',
+    'not null' => TRUE,
+  ), array('primary key' => array('ticket')));
+  db_change_field($ret, 'cas_server_tickets', 'service', 'service', array(
+    'type' => 'varchar',
+    'length' => '255',
+    'not null' => TRUE,
+  ));
 }
 
 function cas_server_uninstall() {

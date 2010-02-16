@@ -18,7 +18,7 @@ function cas_install() {
       // the {tablename} syntax is so multisite installs can add a
       // prefix to the table name as set in the settings.php file
       db_query("CREATE TABLE {cas_login_data} (
-		  cas_session_id varchar(256) NOT NULL default '',
+		  cas_session_id varchar(255) NOT NULL default '',
 		  uid int unsigned NOT NULL,
           PRIMARY KEY  (cas_session_id)
         ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
@@ -26,7 +26,7 @@ function cas_install() {
 
     case 'pgsql':
       db_query("CREATE TABLE {cas_login_data} (
-      	  cas_session_id varchar(256) NOT NULL default '',
+      	  cas_session_id varchar(255) NOT NULL default '',
       	  uid integer NOT NULL CHECK (uid >= 0),
           PRIMARY KEY  (cas_session_id)
         )");
@@ -46,7 +46,7 @@ function cas_update_1() {
     case 'mysqli':
     $items = array();
     $items[] = update_sql("CREATE TABLE {cas_login_data} (
-      cas_session_id varchar(256) NOT NULL default '',
+      cas_session_id varchar(255) NOT NULL default '',
       uid int unsigned NOT NULL,
         PRIMARY KEY  (cas_session_id)
       ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
@@ -56,7 +56,7 @@ function cas_update_1() {
     case 'pgsql':
       $items = array();
       $items[] = update_sql("CREATE TABLE {cas_login_data} (
-      	  cas_session_id varchar(256) NOT NULL default '',
+      	  cas_session_id varchar(255) NOT NULL default '',
       	  uid integer NOT NULL CHECK (uid >= 0),
           PRIMARY KEY  (cas_session_id)
         )");
@@ -70,6 +70,9 @@ function cas_update_1() {
       break;
   }
 }
+  
+
+
 
 function cas_uninstall() {
   if ($GLOBALS['db_type'] == 'pgsql') {
