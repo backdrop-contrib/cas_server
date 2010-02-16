@@ -798,6 +798,10 @@ function cas_logout() {
     $logout_destination .= '?destination='. $destination .'&service='. $destination .'&url='. $destination;
   }
   
+  // Remove our original destination from the request array so that it won't cause
+  // drupal_goto to re-write the url.
+  unset($_REQUEST['destination']);
+  
   // Go to the constructed logout destination
   drupal_goto($logout_destination);
 }
