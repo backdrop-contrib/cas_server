@@ -747,7 +747,7 @@ function cas_login_page() {
  * Logs a user out of drupal and then out of cas
  */
 function cas_logout() {
-  global $user;
+  global $user, $base_url;
   
   watchdog('user', 'Session closed for %name.', array('%name' => $user->name));
   
