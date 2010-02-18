@@ -11,6 +11,13 @@ require_once ('CAS/CAS.php');
 define('CAS_NO_VERIFY', 'none');
 define('CAS_VERIFY', 'verify');
 define('CAS_CA_VERIFY', 'ca_verify');
+define('CAS_NO_LINK',0);
+define('CAS_ADD_LINK',1);
+define('CAS_MAKE_DEFAULT',2);
+define('CAS_LOGIN_INVITE_DEFAULT','Log in via single sign-on (CAS)');
+define('CAS_LOGIN_DRUPAL_INVITE_DEFAULT','Log in locally (no single sign-on)');
+define('CAS_LOGIN_REDIR_MESSAGE','You will be redirected to the secure cas login page'); 
+ 
 
 /**
  * Invokes hook_auth_transform() in every module.
@@ -698,7 +705,48 @@ function cas_admin_settings() {
     '#default_value' => variable_get('cas_useldap_groups', 0),
     '#description' => t('Activate this option if you want to extract the user groups from an LDAP directory. <strong>Ldapgroups module must be enabled and configured</strong>.'),
   );
-  
+  $form['login'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Login form settings'),
+    '#collapsible' => true,
+    '#collapsed' => true,
+  );
+
+  $form['login']['cas_login_form'] = array(
+    '#type' => 'radios',
+    '#title' => t('Add CAS link to login forms'),
+    '#default_value' => variable_get('cas_login_form', CAS_NO_LINK),
+    '#options' => array(CAS_NO_LINK => 'Do not add link to login forms', CAS_ADD_LINK => 'Add link to login forms',
+                        CAS_MAKE_DEFAULT => 'Make CAS login default on login forms'),
+  );
+
+  $form['login']['cas_login_invite'] = array(
+    '#type' => 'textfield',
+    '#title' => t('CAS Login invitation'),
+    '#default_value' => variable_get('cas_login_invite', CAS_LOGIN_INVITE_DEFAULT),
+    '#size' => 55,
+    '#maxlength' => 80,
+    '#description' => t('Message users will see to invite them to log in with cas credentials .'),
+  );
+
+   $form['login']['cas_login_drupal_invite'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Drupal login invitation'),
+    '#default_value' => variable_get('cas_login_drupal_invite',CAS_LOGIN_DRUPAL_INVITE_DEFAULT),
+    '#size' => 55,
+    '#maxlength' => 80,
+    '#description' => t('Message users will see to invite them to log in with drupal credentials.'),
+  );
+ 
+   $form['login']['cas_login_message'] = array(
+    '#type' => 'textfield',
+    '#title' => t('Redirection notification message'),
+    '#default_value' => variable_get('cas_login_message', CAS_LOGIN_REDIR_MESSAGE),
+    '#size' => 55,
+    '#maxlength' => 80,
+    '#description' => t('Message users see at the top of the cas login form to warn them that they are being redirected.'),
+  );
+
   return system_settings_form($form);
 }
 
@@ -902,6 +950,48 @@ function _cas_force_login() {
 function cas_form_alter(&$form, $form_state, $form_id) {
   //drupal_set_message($form_id.'<pre>'.print_r($form,1).'</pre>');
   switch ($form_id) {
+    case 'user_login':    
+    case 'user_login_block':
+      if (variable_get('cas_login_form', CAS_NO_LINK) == CAS_NO_LINK) {
+        break;
+      }
+      drupal_add_css(drupal_get_path('module', 'cas') .'/cas.css', 'module');
+      drupal_add_js(drupal_get_path('module', 'cas') .'/cas.js');
+      if ($form_state['post']['cas_identifier'] == 1) {
+        $form['name']['#required'] = FALSE;
+        $form['pass']['#required'] = FALSE;
+        unset($form['#submit']);
+        $form['#validate'] = array('cas_login_validate');
+      }
+
+      $items = array();
+      $items[] = array(
+        'data' => l(t(variable_get('cas_login_invite',CAS_LOGIN_INVITE_DEFAULT)),'', array('fragment' => ' ', 'external' => TRUE)),
+        'class' => 'cas-link',
+      );
+      $items[] = array(
+        'data' => l(t(variable_get('cas_login_drupal_invite',CAS_LOGIN_DRUPAL_INVITE_DEFAULT)),'', array('fragment' => ' ', 'external' => TRUE)), 
+        'class' => 'uncas-link',
+      );
+      
+      $form['cas_links'] = array(
+        '#value' => theme('item_list', $items),
+        '#weight' => 1,
+      );
+
+      $form['links']['#weight'] = 2;
+
+      $form['cas_identifier'] = array(
+        '#type' => 'checkbox',
+        '#title' => t('Log in using NetID'),
+        '#default_value' => (variable_get('cas_login_form', CAS_NO_LINK) == CAS_ADD_LINK ? 0 : 1),
+        '#weight' => -1,
+        '#description' => t(variable_get('cas_login_redir_message',CAS_LOGIN_REDIR_MESSAGE)),
+      );
+      $form['cas.return_to'] = array('#type' => 'hidden', '#value' => 'cas');
+      break;
+
+    
     case 'user_profile_form':
       //make the email field hidden and force the value to the default.
       if (variable_get('cas_hide_email', 0)) {
@@ -913,6 +1003,8 @@ function cas_form_alter(&$form, $form_state, $form_id) {
           }
           
         }
+        
+
         
         /*
         ** LDAPAuth interfacing - BEGIN
@@ -953,6 +1045,18 @@ function cas_form_alter(&$form, $form_state, $form_id) {
       break;
   }
 }
+
+/**
+ * Login form _validate hook
+ */
+function cas_login_validate($form, &$form_state) {
+  if($form_state['values']['persistent_login'] == 1) {
+    $_SESSION['cas_remember'] = 1;
+  }
+  $_REQUEST['destination'] = 'cas';
+  drupal_redirect_form($form, 'cas');
+}
+
 /*
 ** LDAPAuth interfacing - BEGIN
 */
