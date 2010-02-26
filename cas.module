@@ -925,6 +925,36 @@ function _cas_allow_check_for_login() {
   if ($_COOKIE['cas_login_checked']) { 
     return FALSE; 
   }
+  
+  // Check to see if we've got a search bot.  
+  $crawlers = array(
+    'Google',
+    'msnbot', 
+    'Rambler',
+    'Yahoo',
+    'AbachoBOT',
+    'accoona', 
+    'AcoiRobot',
+    'ASPSeek',
+    'CrocCrawler',
+    'Dumbot', 
+    'FAST-WebCrawler',
+    'GeonaBot',
+    'Gigabot',
+    'Lycos',
+    'MSRBOT', 
+    'Scooter', 
+    'AltaVista', 
+    'IDBot', 
+    'eStyle',
+    'Scrubby',
+    );
+  // Return on the first find.
+  foreach ($crawlers as $c) {
+     if (stripos($_SERVER['HTTP_USER_AGENT'], $c)!==FALSE) {
+       return FALSE;
+     }     
+  }
 
   // No need if we're on the cas login page. 
   list($arg0) = split('/', $_GET['q']);
