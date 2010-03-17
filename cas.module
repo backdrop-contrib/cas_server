@@ -11,13 +11,13 @@ require_once ('CAS/CAS.php');
 define('CAS_NO_VERIFY', 'none');
 define('CAS_VERIFY', 'verify');
 define('CAS_CA_VERIFY', 'ca_verify');
-define('CAS_NO_LINK',0);
-define('CAS_ADD_LINK',1);
-define('CAS_MAKE_DEFAULT',2);
-define('CAS_LOGIN_INVITE_DEFAULT','Log in via single sign-on (CAS)');
-define('CAS_LOGIN_DRUPAL_INVITE_DEFAULT','Log in locally (no single sign-on)');
-define('CAS_LOGIN_REDIR_MESSAGE','You will be redirected to the secure cas login page'); 
-define('CAS_EXCLUDE','services/*'); 
+define('CAS_NO_LINK', 0);
+define('CAS_ADD_LINK', 1);
+define('CAS_MAKE_DEFAULT', 2);
+define('CAS_LOGIN_INVITE_DEFAULT', 'Log in via single sign-on (CAS)');
+define('CAS_LOGIN_DRUPAL_INVITE_DEFAULT', 'Log in locally (no single sign-on)');
+define('CAS_LOGIN_REDIR_MESSAGE', 'You will be redirected to the secure cas login page'); 
+define('CAS_EXCLUDE', 'services/*'); 
  
 
 /**
@@ -141,16 +141,16 @@ function cas_login_check() {
         $cas_roles[$key] = $key;
       }
     }
-    if ( ($debugFile = variable_get("cas_debugfile","")) != "" ) {
+    if ( ($debugFile = variable_get("cas_debugfile", "")) != "" ) {
       phpCAS::setDebug($debugFile);
     }
     // Drupal takes care of its own session
     $start_session = (boolean)FALSE;
     cas_save_page();
     $cas_service_ticket = $_GET['ticket'];  // We use this later for CAS 3 logoutRequests
-    if ( variable_get("cas_proxy",0) ) {
+    if ( variable_get("cas_proxy", 0) ) {
       phpCAS::proxy($server_version, $server_cas_server, $server_port, $server_uri, $start_session);
-      $casPGTStoragePath = variable_get("cas_pgtpath","");
+      $casPGTStoragePath = variable_get("cas_pgtpath", "");
       if ( $casPGTStoragePath != "" ) {
         $casPGTFormat = variable_get("cas_pgtformat", "plain");
         phpCAS::setPGTStorageFile($casPGTFormat, $casPGTStoragePath);
@@ -182,12 +182,13 @@ function cas_login_check() {
     if (!$cas_force_login) {
       $logged_in = phpCAS::checkAuthentication(); 
       // Set the login tested cookie
-      setcookie('cas_login_checked','true'); 
+      setcookie('cas_login_checked', 'true'); 
       
       // We're done cause we're not logged in. 
       if (!$logged_in) return; 
       
-    } else { 
+    } 
+    else { 
       // using function check for backward compatibility of the cas libraries.
       // Newer versions of the cas client use authenticateIfNeeded,
       // but older versions use forceAuthentication
@@ -509,11 +510,11 @@ function cas_admin_settings() {
   );
   
   $form['server']['cas_debugfile'] = array(
-  	'#type' => 'textfield',
-  	'#title' => t('CAS debugging output filename'),
-  	'#default_value' => variable_get('cas_debugfile', ''),
-  	'#size' => 30,
-  	'#description' => "Leave empty if you don't want debugging output.",
+    '#type' => 'textfield',
+    '#title' => t('CAS debugging output filename'),
+    '#default_value' => variable_get('cas_debugfile', ''),
+    '#size' => 30,
+    '#description' => "Leave empty if you don't want debugging output.",
   );
   
   
@@ -717,8 +718,8 @@ function cas_admin_settings() {
   $form['login'] = array(
     '#type' => 'fieldset',
     '#title' => t('Login form settings'),
-    '#collapsible' => true,
-    '#collapsed' => true,
+    '#collapsible' => TRUE,
+    '#collapsed' => TRUE,
   );
 
   $form['login']['cas_login_form'] = array(
@@ -741,7 +742,7 @@ function cas_admin_settings() {
    $form['login']['cas_login_drupal_invite'] = array(
     '#type' => 'textfield',
     '#title' => t('Drupal login invitation'),
-    '#default_value' => variable_get('cas_login_drupal_invite',CAS_LOGIN_DRUPAL_INVITE_DEFAULT),
+    '#default_value' => variable_get('cas_login_drupal_invite', CAS_LOGIN_DRUPAL_INVITE_DEFAULT),
     '#size' => 55,
     '#maxlength' => 80,
     '#description' => t('Message users will see to invite them to log in with drupal credentials.'),
@@ -873,7 +874,7 @@ function cas_block($op = 'list', $delta = 0, $edit = array()) {
     
     return $blocks;
   }
-  else if ($op == 'view') {
+  elseif ($op == 'view') {
     $block = array();
     
     switch ($delta) {
@@ -916,7 +917,7 @@ function cas_login_form_submit($form, &$form_state) {
 function _cas_allow_check_for_login() {
 
     // Determine whether we should check for long
-  $cas_check_first = variable_get('cas_check_first',1);
+  $cas_check_first = variable_get('cas_check_first', 1);
   if (!$cas_check_first) { 
     return FALSE; 
   }
@@ -1077,11 +1078,12 @@ function cas_form_alter(&$form, $form_state, $form_id) {
 
       $items = array();
       $items[] = array(
-        'data' => l(t(variable_get('cas_login_invite',CAS_LOGIN_INVITE_DEFAULT)),'', array('fragment' => ' ', 'external' => TRUE)),
+        'data' => l(t(variable_get('cas_login_invite', CAS_LOGIN_INVITE_DEFAULT)), '', array('fragment' => ' ', 'external' => TRUE)),
         'class' => 'cas-link',
       );
+      
       $items[] = array(
-        'data' => l(t(variable_get('cas_login_drupal_invite',CAS_LOGIN_DRUPAL_INVITE_DEFAULT)),'', array('fragment' => ' ', 'external' => TRUE)), 
+        'data' => l(t(variable_get('cas_login_drupal_invite', CAS_LOGIN_DRUPAL_INVITE_DEFAULT)), '', array('fragment' => ' ', 'external' => TRUE)), 
         'class' => 'uncas-link',
       );
       
@@ -1097,7 +1099,7 @@ function cas_form_alter(&$form, $form_state, $form_id) {
         '#title' => t('Log in using NetID'),
         '#default_value' => (variable_get('cas_login_form', CAS_NO_LINK) == CAS_ADD_LINK ? 0 : 1),
         '#weight' => -1,
-        '#description' => t(variable_get('cas_login_redir_message',CAS_LOGIN_REDIR_MESSAGE)),
+        '#description' => t(variable_get('cas_login_redir_message', CAS_LOGIN_REDIR_MESSAGE)),
       );
       $form['cas.return_to'] = array('#type' => 'hidden', '#value' => 'cas');
       break;
@@ -1161,7 +1163,7 @@ function cas_form_alter(&$form, $form_state, $form_id) {
  * Login form _validate hook
  */
 function cas_login_validate($form, &$form_state) {
-  if($form_state['values']['persistent_login'] == 1) {
+  if ($form_state['values']['persistent_login'] == 1) {
     $_SESSION['cas_remember'] = 1;
   }
   $_REQUEST['destination'] = 'cas';
