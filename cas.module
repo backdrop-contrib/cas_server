@@ -557,14 +557,14 @@ function cas_admin_settings() {
   
   $form['account']['cas_hide_email'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Users canot change email address'),
+    '#title' => t('Users cannot change email address'),
     '#default_value' => variable_get('cas_hide_email', 0),
     '#description' => t('Hide email address field on the edit user form.'),
   );
   
   $form['account']['cas_hide_password'] = array(
     '#type' => 'checkbox',
-    '#title' => t('Users canot change password'),
+    '#title' => t('Users cannot change password'),
     '#default_value' => variable_get('cas_hide_password', 0),
     '#description' => t('Hide password field on the edit user form.'),
   );
