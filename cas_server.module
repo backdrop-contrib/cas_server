@@ -180,4 +180,5 @@ function cas_server_logout() {
   if ($_GET['url'])  {
     $output .= '<p>'. l('Continue', $_GET['url']) .'</p>'; 
   }
+  return $output; 
 }
