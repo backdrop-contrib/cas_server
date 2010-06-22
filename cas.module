@@ -836,9 +836,6 @@ function cas_logout() {
   // e.g. caslogout?desination=http://foo.bar.com/foobar
   // do not accept caslogout as a valid destination, since that may cause a redirect loop
   $destination = preg_replace("/(destination=|caslogout)/", "", drupal_get_destination());
-  
-  //Make it an absolute url.  This will also convert <front> to the front page.
-  if ($destination) $destination = url($destination, array('absolute' => TRUE));
 
   // If there was no override and admin has set and enabled a logout destination, look for it
   if (empty($destination) && variable_get('cas_logout_redirect', 0)) {
@@ -848,6 +845,9 @@ function cas_logout() {
       $destination = $base_url;
     }
   }
+  
+  //Make it an absolute url.  This will also convert <front> to the front page.
+  if ($destination) $destination = url($destination, array('absolute' => TRUE));
 
   // Add the log out destination if we have one
   // The three variables are a hack because cas server implementations don't seem to be consistent with
