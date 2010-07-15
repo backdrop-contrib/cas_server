@@ -964,8 +964,17 @@ function _cas_allow_check_for_login() {
     return FALSE;
   }
   
-  // Don't even do the test if cron.php or xmlrpc.php is invoked.  Don't check for logins.
-  if (base_path() .'cron.php' == $_SERVER['PHP_SELF'] || base_path() .'xmlrpc.php' == $_SERVER['PHP_SELF']) return FALSE;
+   // cron
+  if (stristr($_SERVER['SCRIPT_FILENAME'], 'xmlrpc.php')) {
+    return FALSE;
+  }
+  
+  // XMLRPC
+  if (stristr($_SERVER['SCRIPT_FILENAME'], 'cron.php')) {
+    return FALSE;
+  }
+  
+  
  // Drush
   if (stristr($_SERVER['SCRIPT_FILENAME'], 'drush')) {
     return FALSE;
@@ -1004,8 +1013,16 @@ function _cas_force_login() {
     return TRUE;
   }
   
-  // Don't even do the test if cron.php or xmlrpc.php is invoked.  Don't require login.
-  if (base_path() .'cron.php' == $_SERVER['PHP_SELF'] || base_path() .'xmlrpc.php' == $_SERVER['PHP_SELF']) return FALSE;
+  // cron
+  if (stristr($_SERVER['SCRIPT_FILENAME'], 'xmlrpc.php')) {
+    return FALSE;
+  }
+  
+  // XMLRPC
+  if (stristr($_SERVER['SCRIPT_FILENAME'], 'cron.php')) {
+    return FALSE;
+  }
+  
   
  // Drush
   if (stristr($_SERVER['SCRIPT_FILENAME'], 'drush')) {
