@@ -7,7 +7,6 @@
  * create user accounts automatically.
  */
 
-require_once ('CAS/CAS.php');
 define('CAS_NO_VERIFY', 'none');
 define('CAS_VERIFY', 'verify');
 define('CAS_CA_VERIFY', 'ca_verify');
@@ -124,6 +123,9 @@ function cas_login_check() {
   $cas_force_login = _cas_force_login(); 
   
   if ($cas_force_login || $cas_check_first) {
+    // Calls phpCAS library.
+    require_once ('CAS/CAS.php');
+
     // Variable set
     $cas_user_register = variable_get('cas_user_register', 1);
     $cas_authmap       = variable_get('cas_authmap', 0);
@@ -1032,11 +1034,7 @@ function _cas_force_login() {
   
   
  // Drush
-  if (stristr($_SERVER['SCRIPT_FILENAME'], 'drush')) {
-    return FALSE;
-  }
-  // Drush
-  if (stristr($_SERVER['argv'][0], 'drush')) {
+  if (function_exists('drush_verify_cli') && drush_verify_cli()) {
     return FALSE;
   }
   
