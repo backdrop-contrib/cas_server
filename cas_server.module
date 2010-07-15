@@ -13,28 +13,28 @@ function cas_server_menu() {
   $items = array(); 
   $items['cas/login'] = array(
     'page callback' => 'cas_server_login',
-    'title' => t('CAS Login'),
+    'title' => 'CAS Login',
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   ); 
 
   $items['cas/validate'] = array(
     'page callback' => 'cas_server_validate',
-    'title' => t('CAS Validate'),
+    'title' => 'CAS Validate',
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   );
 
   $items['cas/serviceValidate'] = array(
     'page callback' => 'cas_server_service_validate',
-    'title' => t('CAS Service Validate'), 
+    'title' => 'CAS Service Validate',
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   ); 
   
   $items['cas/logout'] = array(
     'page callback' => 'cas_server_logout', 
-    'title' => t('CAS Logout'),
+    'title' => 'CAS Logout',
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   ); 
@@ -74,7 +74,7 @@ function cas_server_login() {
       if ($_GET['service']) { 
         setcookie(CAS_LOGIN_COOKIE, $_REQUEST['service']);
       } 
-      $output .= l('Login', 'user', array('query' => 'destination=cas/login'));
+      $output .= l(t('Login'), 'user', array('query' => 'destination=cas/login'));
       drupal_goto('user', 'destination=cas/login');
     }
   } 
@@ -118,7 +118,7 @@ function cas_server_service_validate() {
           "    <cas:user>$user_name</cas:user>\n".
           "  </cas:authenticationSuccess>\n".
           "</cas:serviceResponse>\n"; 
-    watchdog('cas', 'User '. $user_name .' CAS sucessully authenticated.'); 
+    watchdog('cas', 'User %name CAS sucessully authenticated.', array('%name' => $user_name));
   } 
   else {
     print "<cas:serviceReponse xmlns:cas='http://www.yale.edu/tp/cas'>\n".
@@ -126,7 +126,7 @@ function cas_server_service_validate() {
           "     Ticket $ticket not recognized.\n".
           "  </cas:authenticationFailure>".
           "</cas:serviceResponse>"; 
-    watchdog('cas', 'User '. $user_name .' authentication failed!'); 
+    watchdog('cas', 'User %name authentication failed!', array('%name' => $user_name));
   }
 }
 
@@ -176,9 +176,9 @@ function cas_server_logout() {
   // Destroy the current session:
   session_destroy();
   module_invoke_all('user', 'logout', NULL, $user);
-  $output = '<p>You have been logged out successfully</p>'; 
+  $output = t('<p>You have been logged out successfully</p>');
   if ($_GET['url'])  {
-    $output .= '<p>'. l('Continue', $_GET['url']) .'</p>'; 
+    $output .= '<p>'. l(t('Continue'), $_GET['url']) .'</p>';
   }
   return $output; 
 }

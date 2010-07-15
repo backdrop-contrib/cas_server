@@ -221,7 +221,7 @@ function cas_login_check() {
      * eg. if you want to filter out people without LDAP home directories
      */
     if (($allow = cas_invoke_auth_filter($cas_name)) === FALSE) {
-      drupal_set_message("The user account $cas_name is not available on this site.", "error");
+      drupal_set_message(t('The user account %name is not available on this site.', array('%name' => $cas_name)), 'error');
       return;
     }
     
@@ -229,19 +229,19 @@ function cas_login_check() {
     
     if ($cas_authmap && user_is_blocked($cas_name)) {
       // blocked in user administration
-      drupal_set_message("The username $cas_name has been blocked.", "error");
+      drupal_set_message(t('The username %name has been blocked.', array('%name' => $cas_name)), 'error');
       return;
     }
     // this is because users can change their name. 
     if (!$cas_authmap && _cas_external_user_is_blocked($cas_name)) {
       // blocked in user administration
-      drupal_set_message("The username $cas_name has been blocked.", "error");
+      drupal_set_message(t('The username %name has been blocked.', array('%name' => $cas_name)), 'error');
       return;
     }
     
     if (drupal_is_denied('user', $cas_name)) {
       // denied by access controls
-      drupal_set_message("The name $cas_name is a reserved username.", "error");
+      drupal_set_message(t('The name %name is a reserved username.', array('%name' => $cas_name)), 'error');
       return;
     } 
     
@@ -385,7 +385,7 @@ function cas_menu() {
   $items = array();
   //cas_login_check();
   $items['admin/user/cas'] = array(
-    'title' => t('CAS settings'),
+    'title' => 'CAS settings',
     'description' => 'Configure central authentication services',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('cas_admin_settings'),
@@ -395,7 +395,7 @@ function cas_menu() {
   
   $items['cas'] = array(
     'path' => 'cas',
-    'title' => t('CAS Login'),
+    'title' => 'CAS Login',
     'page callback' => 'cas_login_page',
     'access callback' => 'cas_menu_check',
     'type' => MENU_SUGGESTED_ITEM,
@@ -403,7 +403,7 @@ function cas_menu() {
   
   
   $items['caslogout'] = array(
-    'title' => t('CAS Logout'),
+    'title' => 'CAS Logout',
     'page callback' => 'cas_logout',
     'access callback' => 'cas_menu_logout_check',
     'type' => MENU_SUGGESTED_ITEM,
@@ -429,7 +429,7 @@ function cas_admin_settings() {
     '#type' => 'radios',
     '#title' => t('CAS version'),
     '#default_value' => variable_get('cas_version', '2.0'),
-    '#options' => array('1.0' => '1.0', '2.0' => '2.0 or higher'),
+    '#options' => array('1.0' => '1.0', '2.0' => t('2.0 or higher')),
   );
   
   $form['server']['cas_server'] = array(
@@ -447,14 +447,15 @@ function cas_admin_settings() {
     '#default_value' => variable_get('cas_port', '443'),
     '#size' => 30,
     '#maxlength' => 8,
-    '#description' => '443 is the standard ssl port. 8443 is the standard non-root port for Tomcat.',
+    '#description' => t('443 is the standard ssl port. 8443 is the standard non-root port for Tomcat.'),
   );
   
   $form['server']['cas_uri'] = array(
     '#type' => 'textfield',
     '#title' => t('CAS URI'),
     '#default_value' => variable_get('cas_uri', ''),
-    '#size' => 30, '#description' => 'If CAS is not at the root of the host, include a URI (e.g., /cas).',
+    '#size' => 30,
+    '#description' => t('If CAS is not at the root of the host, include a URI (e.g., /cas).'),
   );
   
   $form['server']['cas_check_first'] = array(
@@ -468,8 +469,11 @@ function cas_admin_settings() {
     '#type' => 'radios',
     '#title' => t('CAS PEM certificate verification'),
     '#default_value' => variable_get('cas_cert_verify', CAS_NO_VERIFY),
-    '#options' => array(CAS_NO_VERIFY => 'Do not verify the certificate', CAS_VERIFY => 'Verify the server using PEM cerificate',
-      CAS_CA_VERIFY => 'Verify the Certificate Authority using PEM certificate'),
+    '#options' => array(
+      CAS_NO_VERIFY => t('Do not verify the certificate'),
+      CAS_VERIFY => t('Verify the server using PEM cerificate'),
+      CAS_CA_VERIFY => t('Verify the Certificate Authority using PEM certificate'),
+    ),
   );
   
   
@@ -477,7 +481,8 @@ function cas_admin_settings() {
     '#type' => 'textfield',
     '#title' => t('CAS PEM Certificate (phpCAS 0.6 or greater)'),
     '#default_value' => variable_get('cas_cert', ''),
-    '#size' => 30, '#description' => 'With client version 0.6 or greater this is the certificate for validating cas or the cas CA as appropriate.',
+    '#size' => 30,
+    '#description' => t('With client version 0.6 or greater this is the certificate for validating cas or the cas CA as appropriate.'),
   );
   
   $form['server']['cas_proxy'] = array(
@@ -491,7 +496,7 @@ function cas_admin_settings() {
     '#type' => 'radios',
     '#title' => t('CAS PGT storage file format'),
     '#default_value' => variable_get('cas_pgtformat', 'plain'),
-    '#options' => array('plain' => 'Plain Text', 'xml' => 'XML'),
+    '#options' => array('plain' => t('Plain Text'), 'xml' => t('XML')),
   );
       
   $form['server']['cas_pgtpath'] = array(
@@ -499,7 +504,7 @@ function cas_admin_settings() {
     '#title' => t('CAS PGT storage path'),
     '#default_value' => variable_get('cas_pgtpath', ''),
     '#size' => 30,
-    '#description' => "Only needed if 'Use CAS proxy initializer' is configured. Leave empty for default.",
+    '#description' => t("Only needed if 'Use CAS proxy initializer' is configured. Leave empty for default."),
   );
   
   $form['server']['cas_signout'] = array(
@@ -514,7 +519,7 @@ function cas_admin_settings() {
     '#title' => t('CAS debugging output filename'),
     '#default_value' => variable_get('cas_debugfile', ''),
     '#size' => 30,
-    '#description' => "Leave empty if you don't want debugging output.",
+    '#description' => t("Leave empty if you don't want debugging output."),
   );
   
   
@@ -643,7 +648,7 @@ function cas_admin_settings() {
     '#type' => 'textfield',
     '#title' => t('Successful login message'),
     '#default_value' => variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'),
-    '#description' => 'The message displayed to a user when he successfully logs in via CAS. You may specify \'%cas_username\', the username of the user.',
+    '#description' => t('The message displayed to a user when he successfully logs in via CAS. You may specify \'%cas_username\', the username of the user.'),
   );
   
   // Setting for page to return to after a CAS logout
@@ -726,8 +731,10 @@ function cas_admin_settings() {
     '#type' => 'radios',
     '#title' => t('Add CAS link to login forms'),
     '#default_value' => variable_get('cas_login_form', CAS_NO_LINK),
-    '#options' => array(CAS_NO_LINK => 'Do not add link to login forms', CAS_ADD_LINK => 'Add link to login forms',
-                        CAS_MAKE_DEFAULT => 'Make CAS login default on login forms'),
+    '#options' => array(
+      CAS_NO_LINK => t('Do not add link to login forms'),
+      CAS_ADD_LINK => t('Add link to login forms'),
+      CAS_MAKE_DEFAULT => t('Make CAS login default on login forms')),
   );
 
   $form['login']['cas_login_invite'] = array(
