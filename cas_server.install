@@ -2,86 +2,96 @@
 // $Id$
 
 /**
- * @file Cas Server Schema Install 
- *
+ * @file
+ * Installation hooks for the CAS Server module.
  */
-
 
 /**
- * Inastall db tables. 
- *
+ * Implementation of hook_schema().
+ */
+function cas_server_schema() {
+  $schema = array();
+
+  $schema['cas_server_tickets'] = array(
+    'description' => 'Stores CAS server tickets.',
+    'fields' => array(
+      'service' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'ticket' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'timestamp' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('ticket'),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implementation of hook_install().
  */
 function cas_server_install() {
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-      // the {tablename} syntax is so multisite installs can add a
-      // prefix to the table name as set in the settings.php file
-      db_query("CREATE TABLE {cas_server_tickets} (
-      service varchar(255) NOT NULL default '',
-		  ticket varchar(255) NOT NULL default '',
-		  uid int unsigned NOT NULL,
-		  timestamp int NOT NULL, 
-          PRIMARY KEY  (ticket)
-        ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      break;
-
-    case 'pgsql':
-      db_query("CREATE TABLE {cas_server_tickets} (
-        service varchar(255) NOT NULL default '',
-        ticket varchar(255) NOT NULL default '',
-        uid integer NOT NULL CHECK (uid >= 0),
-        timestamp integer NOT NULL, 
-          PRIMARY KEY  (ticket)
-        )");
-
-      // Pgsql requires keys and indexes to be defined separately.
-      // It's important to name the index as {tablename}_fieldname_idx
-      // (the trailing _idx!) so update scripts can be written easily
-      db_query("CREATE INDEX {cas_server_tickets}_uid_idx
-                ON {cas_server_tickets} (uid)");
-      break;
-  }
+  drupal_install_schema('cas_server');
 }
 
-function cas_server_update_1() {
-  switch ($GLOBALS['db_type']) {
-    case 'mysql':
-    case 'mysqli':
-    $items = array();
-    $items[] = update_sql("CREATE TABLE {cas_server_tickets} (
-      service varchar(255) NOT NULL default '',
-      ticket varchar(255) NOT NULL default '',
-      uid int unsigned NOT NULL,
-      timestamp int NOT NULL,
-        PRIMARY KEY  (ticket)
-      ) /*!40100 DEFAULT CHARACTER SET utf8 */;");
-      return $items;
-      break;
-
-    case 'pgsql':
-      $items = array();
-      $items[] = update_sql("CREATE TABLE {cas_server_tickets} (
-          service varchar(255) NOT NULL default '',
-          ticket varchar(255) NOT NULL default '',
-       	  uid integer NOT NULL CHECK (uid >= 0),
-       	  timestamp integer NOT NULL, 
-          PRIMARY KEY  (ticket)
-        )");
-
-      // Pgsql requires keys and indexes to be defined separately.
-      // It's important to name the index as {tablename}_fieldname_idx
-      // (the trailing _idx!) so update scripts can be written easily
-      $items[] = update_sql("CREATE INDEX {cas_server_tickets}_uid_idx
-                ON {cas_server_tickets} (uid)");
-      return $items;
-      break;
-  }
-}
-
+/**
+ * Implementation of hook_uninstall().
+ */
 function cas_server_uninstall() {
-  if ($GLOBALS['db_type'] == 'pgsql') {
-    db_query('DROP INDEX {cas_server_tickets}_uid_idx');
-  }
-  db_query('DROP TABLE {cas_server_tickets}');
+  drupal_uninstall_schema('cas_server');
+}
+
+/**
+ * Implementation of hook_update_N().
+ */
+function cas_server_update_1() {
+  $schema = array();
+
+  $schema['cas_server_tickets'] = array(
+    'description' => 'Stores CAS server tickets.',
+    'fields' => array(
+      'service' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'ticket' => array(
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'timestamp' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('ticket'),
+  );
+
+  $ret = array();
+  db_create_table($ret, 'cas_server_tickets', $schema['cas_server_tickets']);
+  return $ret;
 }
