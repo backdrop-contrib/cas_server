@@ -298,22 +298,6 @@ function cas_login_check() {
     
     // final check to make sure we have a good user
     if ($user->uid && $user->uid > 0) {
-      /*
-      ** LDAPAuth interfacing - BEGIN
-      */
-      
-      if (variable_get('cas_useldap_groups', '')) {
-        if ($ldap_config_name = _get_ldap_config_name($user->name)) {
-          _ldapauth_init($ldap_config_name);
-          module_load_include('module', 'ldap_integration', 'ldapgroups');
-          $user->ldap_authentified = TRUE;
-          ldapgroups_user_login($user);
-        }
-      }
-      
-      /*
-      ** LDAPAuth interfacing - END
-      */
       
     /*
  	  ** CAS Sigle Sign Out - BEGIN
@@ -536,7 +520,7 @@ function cas_admin_settings() {
     '#type' => 'checkbox',
     '#title' => t('Is Drupal also the CAS user repository?'),
     '#default_value' => variable_get('cas_authmap', 0),
-    '#description' => t('In most cases, the answer will be no; an LDAP repository will be the source of CAS users. But in some cases, the Drupal user database could be used as the central user store for single sign-on. If this is the case, select this option.'),
+    '#description' => t('In most cases, the answer will be no, But in some cases, the Drupal user database could be used as the central user store for single sign-on. If this is the case, select this option.'),
   );
   
   $form['account']['cas_hijack_user'] = array(
@@ -691,37 +675,7 @@ function cas_admin_settings() {
     '#default_value' => variable_get('cas_registerURL', ''),
     '#description' => t('The URL users should use for changing registering.  Leave blank to use the standard Drupal page.'),
   );
-  
-  
-  $form['ldap'] = array(
-    '#type' => 'fieldset',
-    '#title' => t('LDAP settings'),
-    '#collapsible' => TRUE,
-    '#collapsed' => TRUE,
-  );
-  
-  $form['ldap']['cas_useldap'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Should we extract the user email from an LDAP directory?'),
-    '#default_value' => variable_get('cas_useldap', 0),
-    '#description' => t('Activate this option if you want to extract the user email from an LDAP directory. <strong>Ldapauth module must be enabled and configured</strong>.'),
-  );
-  
-  $form['ldap']['cas_ldap_email_attribute'] = array(
-    '#type' => 'textfield',
-    '#title' => t('Email attribute'),
-    '#default_value' => variable_get('cas_ldap_email_attribute', 'mail'),
-    '#size' => 30,
-    '#maxlength' => 55,
-    '#description' => t('LDAP entry attribute containing the email address.'),
-  );
-  
-  $form['ldap']['cas_useldap_groups'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Should we extract user groups from an LDAP directory?'),
-    '#default_value' => variable_get('cas_useldap_groups', 0),
-    '#description' => t('Activate this option if you want to extract the user groups from an LDAP directory. <strong>Ldapgroups module must be enabled and configured</strong>.'),
-  );
+    
   $form['login'] = array(
     '#type' => 'fieldset',
     '#title' => t('Login form settings'),
@@ -1138,29 +1092,6 @@ function cas_form_alter(&$form, $form_state, $form_id) {
           }
           
         }
-        
-
-        
-        /*
-        ** LDAPAuth interfacing - BEGIN
-        */
-        if (variable_get('cas_useldap', '')) {
-          global $ldapauth_ldap, $user;
-          if ($ldap_config_name = _get_ldap_config_name($user->name)) {
-            _ldapauth_init($ldap_config_name);
-            _ldapauth_user_lookup($user->name);
-            $cas_ldap_email_attribute = (string)variable_get('cas_ldap_email_attribute', 'mail');
-            $ldap_entries = $ldapauth_ldap->search($ldapauth_ldap->getOption('basedn'), $ldapauth_ldap->getOption('user_attr') .'='. $user->name, array($cas_ldap_email_attribute));
-            if ($ldap_entries['count'] == 1 && isset($ldap_entries[0][$cas_ldap_email_attribute][0])) if (trim($ldap_entries[0][$cas_ldap_email_attribute][0]) != '') {
-              $form['account']['mail']['#type'] = 'hidden';
-              $form['account']['mail']['#value'] = $ldap_entries[0][$cas_ldap_email_attribute][0];
-              }
-          }
-        }
-        
-        /*
-        ** LDAPAuth interfacing - END
-        */
       }
       
       //Remove the password fields from the form.
@@ -1191,35 +1122,6 @@ function cas_login_validate($form, &$form_state) {
   $_REQUEST['destination'] = 'cas';
   drupal_redirect_form($form, 'cas');
 }
-
-/*
-** LDAPAuth interfacing - BEGIN
-*/
-
-/**
- * LDAP Auxiliary functions
- */
-function _get_ldap_config_name($user_name) {
-  module_load_include('module', 'ldap_integration', 'ldapauth');  
-  $user_found = FALSE;
-  $result = db_query("SELECT name FROM {ldapauth} WHERE status = '%d' ORDER BY sid", 1);
-  while ($row = db_fetch_object($result)) {
-    // cycle thru the authentication schemes - first successful one wins
-    // instantiate ldap
-    _ldapauth_init($row->name);
-    $ldap_user_entry = _ldapauth_user_lookup($user_name);
-    if ($ldap_user_entry) {
-      $user_found = TRUE;
-      break;
-    }
-  }
-  if ($user_found) return $row->name;
-  else return FALSE;
-}
-
-/*
-** LDAPAuth interfacing - END
-*/
 
 /*
  * CAS Sigle Sign Out - BEGIN
