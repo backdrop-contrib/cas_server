@@ -17,6 +17,8 @@ define('CAS_LOGIN_INVITE_DEFAULT', 'Log in via single sign-on (CAS)');
 define('CAS_LOGIN_DRUPAL_INVITE_DEFAULT', 'Log in locally (no single sign-on)');
 define('CAS_LOGIN_REDIR_MESSAGE', 'You will be redirected to the secure cas login page'); 
 define('CAS_EXCLUDE', 'services/*'); 
+define('CAS_AUTHMAP_EXTERNAL',0);  // Use external authmap entries for cas
+define('CAS_AUTHMAP_INTERNAL',1);  // Use drupal as the internal user. 
  
 
 /**
@@ -123,8 +125,22 @@ function cas_login_check() {
   $cas_force_login = _cas_force_login(); 
   
   if ($cas_force_login || $cas_check_first) {
-    // Calls phpCAS library.
-    require_once ('CAS/CAS.php');
+
+    // Gets path to CAS library, performs a basic sanity check.
+    if (module_exists('libraries')) {
+      $filename = libraries_get_path('CAS');
+    }
+    else {
+      $filename = variable_get('cas_library_dir', 'CAS');
+    }
+    $filename .= '/CAS.php';
+    include_once($filename);
+    
+    if (!class_exists('phpCAS')) { 
+      drupal_set_message(t('Error loading CAS library using %filename', array('%filename' => $filename)), 'error');
+      return;
+    }
+    
 
     // Variable set
     $cas_user_register = variable_get('cas_user_register', 1);
@@ -298,43 +314,35 @@ function cas_login_check() {
     
     // final check to make sure we have a good user
     if ($user->uid && $user->uid > 0) {
-      
-    /*
- 	  ** CAS Sigle Sign Out - BEGIN
- 	  */
-      
+     
+    // Save single sign out information
     if (variable_get('cas_signout', FALSE)) {
       _cas_single_sign_out_save_token($user, $cas_service_ticket);
     }
       
-      /*
-       * CAS Single Sign Out - END
-       */
-
-      // update the roles and reset the password
-      $roles = $user->roles;
-      foreach ($cas_roles as $role) {
-        $roles[$role] = $role;
-      }
-      /* Removing password cause it cases problems with phpcas. */ 
-      $user_up = array(
- //       "pass" => user_password(),
-        "roles" => $roles,
-      );
-      $user = user_save($user, $user_up);
-      
-      $edit = array();
-      if (module_exists('persistent_login') && $_SESSION['cas_remember']) {
-        $edit['persistent_login'] = 1;
-      }
-      user_module_invoke('login', $edit, $user);
-      drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
-      if ($edit['persistent_login'] == 1) {
-        drupal_set_message(t('You will remain logged in on this computer even after you close your browser.'));
-      }
-      watchdog('user', 'Session opened for %name.', array('%name' => $user->name));
-      // We can't count on the menu because we're changing login states.
-      cas_login_page();
+    // update the roles and reset the password
+    $roles = $user->roles;
+    foreach ($cas_roles as $role) {
+      $roles[$role] = $role;
+    }
+    /* Removing password cause it cases problems with phpcas. */ 
+    $user_up = array(
+      "roles" => $roles,
+    );
+    $user = user_save($user, $user_up);
+    
+    $edit = array();
+    if (module_exists('persistent_login') && $_SESSION['cas_remember']) {
+      $edit['persistent_login'] = 1;
+    }
+    user_module_invoke('login', $edit, $user);
+    drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
+    if ($edit['persistent_login'] == 1) {
+      drupal_set_message(t('You will remain logged in on this computer even after you close your browser.'));
+    }
+    watchdog('user', 'Session opened for %name.', array('%name' => $user->name));
+    // We can't count on the menu because we're changing login states.
+    cas_login_page();
     }
     // if we have a good user
     else {
@@ -400,10 +408,163 @@ function cas_menu() {
 }
 
 /**
+ * Expandee file_exists function
+ * From php.net manual page for file_exists
+*/
+function _cas_include_exists($filename) {  
+  // Check the simple case.
+  if (file_exists($filename)) return TRUE;
+
+  // Check module directory
+  if (file_exists(drupal_get_path('module', 'cas') .'/'. $filename)) return TRUE; 
+  
+  
+  // Find the include path
+  if (function_exists("get_include_path")) {
+    $include_path = get_include_path();
+  } 
+  elseif (FALSE !== ($ip = ini_get("include_path"))) {
+    $include_path = $ip;
+  } 
+  
+  // Walk the include path, searching for the file
+  if (strpos($include_path, PATH_SEPARATOR) !== FALSE) {
+    $temp = explode(PATH_SEPARATOR, $include_path); 
+    for ($n = 0; $n < count($temp); $n++) {
+      if (file_exists(rtrim($temp[$n], '/') .'/'. $filename)) {
+        return TURE;
+      }
+    }
+  } 
+  
+  return FALSE; 
+} 
+
+
+/**
+ * Returns the version of phpCAS installed on the server.
+ *
+ * @param $dir
+ *   A string containing the directory the CAS.php file resides in.
+ * @param &$error
+ *   Returns a human readable message as to why the version could not be
+ *   retrieved, empty string if there are no errors.
+ *
+ * @return
+ *   A string containing the version, FALSE on errors.
+ */
+function cas_library_version_get($dir, &$error = NULL) {
+  $error = '';
+
+  // Gets path to library directory, path to the CAS.php file.
+  $dirname  = rtrim($dir, '/');
+  $filename = $dirname .'/CAS.php';
+  
+  // Make sure that the library exists. 
+  if (_cas_include_exists($filename)) {
+    require_once($filename);
+  }
+  else {
+    $error = t('The phpCAS library was not found at %path', array('%path' => $filename)); 
+    return FALSE;  
+  }
+  
+  // Verify that the class exists
+  if (!class_exists('phpCAS')) {
+    $error = t('The <em>CAS.php</em> file was loaded, but the <em>phpCAS</em> class was not found.');
+    return FALSE; 
+  }
+  
+  // Retrieve the version 
+  if (!defined('PHPCAS_VERSION')) {
+    $error = t('The phpCAS library was loaded, but the version could not be determined.');
+  }
+  
+  return PHPCAS_VERSION;
+}
+
+/**
+ * Checks that the library is installed in the location specified by loading the
+ * class and extracting the version.
+ *
+ * @param $form_element
+ *   The form element containing the "library" fieldset.
+ * @param $form_state
+ *   An array containing the form's state information.
+ *
+ * @return
+ *   The modified form element containing the "library" fieldset.
+ */
+function cas_library_version_check($form_element, $form_state) {
+  if ($version = cas_library_version_get($form_state['values']['cas_library_dir'], $error)) {
+    $form_element['library']['cas_library_version'] = array(
+      '#title' => t('Library version'),
+      '#value' => '<pre>'. check_plain($version) .'</pre>',
+      '#description' => t('The phpCAS library was loaded and returned this version information.'),
+    );
+  }
+  else {
+    $form_element['library'] = array(
+      '#value' => '<p class="error">'. $error .'</p>',
+    );
+  }
+  $form_element['library']['cas_library_version']['#type'] = 'item';
+  return $form_element;
+}
+
+/**
+ * Validates the CAS library version.
+ *
+ * @param $element
+ *   An array containing the element being validated.
+ *
+ * @return
+ *   A boolean flagging whether or not the element is valid.
+ */
+function cas_library_dir_validate($element) {
+  if ($version = cas_library_version_get($element['#value'])) {
+    return TRUE;
+  }
+  else {
+    form_set_error($element['#parents'][0], t('CAS library directory not valid.'));
+    return FALSE;
+  }
+}
+
+/**
+ * Validates the cas_admin_settings form.
+ */
+function cas_admin_settings_validate(&$form, &$form_state) {
+  if (!module_exists('libraries')) {
+    form_set_value($form['library']['cas_library_dir'], rtrim($form_state['values']['cas_library_dir'], '/'), $form_state);
+  }
+}
+
+/**
  * Provides settings pages.
  */
 function cas_admin_settings() {
   
+  // Only displays path settings if Libraries API is not installed.
+  if (!module_exists('libraries')) {
+    
+    $form['library'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('CAS library settings'),
+      '#collapsible' => TRUE,
+      '#after_build' => array('cas_library_version_check'),
+    );
+    
+    $form['library']['cas_library_dir'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Library directory'),
+      '#default_value' => variable_get('cas_library_dir', 'CAS'),
+      '#required' => TRUE,
+      '#description' => t('Specify the path to the directory the CAS.php file resides in. Leave blank to load cas from your phpinclude path.'),
+      '#element_validate' => array('cas_library_dir_validate'),
+    );
+  }
+
   $form['server'] = array(
     '#type' => 'fieldset',
     '#title' => t('CAS server settings'),
@@ -415,7 +576,11 @@ function cas_admin_settings() {
     '#type' => 'radios',
     '#title' => t('CAS version'),
     '#default_value' => variable_get('cas_version', '2.0'),
-    '#options' => array('1.0' => '1.0', '2.0' => t('2.0 or higher')),
+    '#options' => array(
+      '1.0' => '1.0',
+      '2.0' => t('2.0 or higher'),
+      'S1' => t('SAML Version 1.1'),
+    ),
   );
   
   $form['server']['cas_server'] = array(
@@ -461,7 +626,6 @@ function cas_admin_settings() {
       CAS_CA_VERIFY => t('Verify the Certificate Authority using PEM certificate'),
     ),
   );
-  
   
   $form['server']['cas_cert'] = array(
     '#type' => 'textfield',
@@ -758,6 +922,12 @@ function cas_login_page() {
     $destination = $_SESSION['cas_goto'];
   }
   unset($_SESSION['cas_goto']);
+  
+  // Change the user/login and user/register urls to the users current page. 
+  if ($destination == 'user/login' || $destination = 'user/register') { 
+    $destination = 'user/'. $user->uid; 
+  }
+  
   drupal_goto($destination);
   // this should never happen.
   $output .= t("Cas page... you should never get here");
@@ -1030,12 +1200,11 @@ function _cas_force_login() {
   
   return $force_login;
 }
-
 /**
  * implementation of hook_form_alter
  * Overrides specific from settings based on user policy.
  */
-function cas_form_alter(&$form, $form_state, $form_id) {
+function cas_form_alter(&$form, $form_state, $form_id) { 
   //drupal_set_message($form_id.'<pre>'.print_r($form,1).'</pre>');
   switch ($form_id) {
     case 'user_login':    
@@ -1083,7 +1252,7 @@ function cas_form_alter(&$form, $form_state, $form_id) {
     
     case 'user_profile_form':
       //make the email field hidden and force the value to the default.
-      if (variable_get('cas_hide_email', 0)) {
+      if (variable_get('cas_hide_email', 0) && cas_is_external_user()) {
         if (variable_get('cas_domain', '')) {
           $form['account']['mail']['#type'] = 'hidden';
           $form['account']['mail']['#value'] = $form['account']['mail']['#default_value']; 
@@ -1095,7 +1264,7 @@ function cas_form_alter(&$form, $form_state, $form_id) {
       }
       
       //Remove the password fields from the form.
-      if (variable_get('cas_hide_password', 0))unset($form['account']['pass']);
+      if (variable_get('cas_hide_password', 0) && cas_is_external_user())unset($form['account']['pass']);
       break;
     
     case 'user_pass':
@@ -1149,6 +1318,38 @@ function _cas_single_sign_out_check() {
     }
   }
 }
+
+/**
+ * Return the current cas user based on sessioin variables
+ *
+ */
+function cas_current_user() { 
+  return $_SESSION['phpCAS']['user']; 
+}
+
+/**
+ * Determine whether the current user is an "external" cas user. 
+ * When settings are set to use drupal as the user repository, then this 
+ * function will always return true. 
+ * 
+ * @return unknown
+ */
+function cas_is_external_user() {
+  if (variable_get('cas_authmap',0)== CAS_AUTHMAP_EXTERNAL) { 
+     $authname = cas_current_user(); 
+     $map = user_get_authmaps($authname);
+     if ($map['cas']) { 
+       return TRUE;     
+     }
+     else {
+       return FALSE; 
+     }
+  }
+  else { 
+    return TRUE;  
+  }
+}
+
 
 function _cas_single_sign_out_save_token($user, $cas_sign_out_token) {
   // Ok lets save the CAS service ticket to DB so 
