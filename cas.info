@@ -1,5 +1,7 @@
 ; $Id $
 name = cas
-core = 6.x
+core = 7.x
 description = "Provides single sign-on Central Authentication Services (CAS)"
+files[] = cas.module
+
 
