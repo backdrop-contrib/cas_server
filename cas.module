@@ -222,7 +222,6 @@ function cas_login_check() {
     }
     
     $cas_name = phpCAS::getUser();
-    watchdog('debug','FOund user '. $cas_name); 
     
     /*
      * Invoke hook_auth_transform($op, &$username)
