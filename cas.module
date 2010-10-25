@@ -167,7 +167,7 @@ function cas_login_check() {
     // Drupal takes care of its own session
     $start_session = (boolean)FALSE;
     cas_save_page();
-    $cas_service_ticket = $_GET['ticket'];  // We use this later for CAS 3 logoutRequests
+    if (!empty($_GET['ticket'])) $cas_service_ticket = $_GET['ticket'];  // We use this later for CAS 3 logoutRequests
     if ( variable_get("cas_proxy", 0) ) {
       phpCAS::proxy($server_version, $server_cas_server, $server_port, $server_uri, $start_session);
       $casPGTStoragePath = variable_get("cas_pgtpath", "");
@@ -284,26 +284,26 @@ function cas_login_check() {
     if ($cas_authmap) {
       // users are coming from Drupal; no need to use the external_load and the authmap
       watchdog('debug','Loading' . $cas_name); 
-      $user = user_load_by_name($cas_name);
+      $acct = user_load_by_name($cas_name);
     }
     else {
       // users are external; use authmap table for associating external users
-      $user = user_external_load($cas_name);
-      watchdog('debug','Loading' . $cas_name . print_r($user,1));       
-      if (!$user->uid && variable_get('cas_hijack_user', 0)) {
-        $user = user_load_by_name($cas_name);
-        if ($user->uid) user_set_authmaps($user, array('authname_cas' => $cas_name));
+      $acct = user_external_load($cas_name);
+      if (empty($acct) && variable_get('cas_hijack_user', 0)) {
+        $acct = user_load_by_name($cas_name);
+        
+        if ($acct->uid) user_set_authmaps($user, array('authname_cas' => $cas_name));
       }
     }
-    $watchdog('debug', print_r($user,1)); 
+    watchdog('debug', print_r($acct,1)); 
     
     // If we don't have a user register them.
-    if (!$user->uid ) {
+    if (!$acct->uid ) {
       if ($cas_user_register == 1) {
         $user_default = array(
           "name" => $cas_name,
           "pass" => user_password(),
-          "init" => db_escape_string($cas_name),
+          "init" => $cas_name,
           "status" => 1,
           "roles" => $cas_roles,
         );
@@ -312,11 +312,12 @@ function cas_login_check() {
         
         // Become user 1 to be able to save profile information
         session_save_session(FALSE);
-        $admin = array('uid' => 1);
+        $tmp_acct = $user; 
         $user = user_load(1);
         
         // now save the user and become the new user.
-        $user = user_save("", $user_default);
+        $acct = user_save("", $user_default);
+        $user = $tmp_acct; 
         session_save_session(TRUE);
         watchdog("user", 'new user: %n (CAS)', array('%n' => $user->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$user->uid"));
         $edit = array(); 
@@ -333,10 +334,10 @@ function cas_login_check() {
     }
     
     // final check to make sure we have a good user
-    if ($user->uid && $user->uid > 0) {
+    if (!empty($acct) && $acct->uid > 0) {
      
     // Save single sign out information
-    if (variable_get('cas_signout', FALSE)) {
+    if (!empty($cas_service_ticket) && variable_get('cas_signout', FALSE)) {
       _cas_single_sign_out_save_token($user, $cas_service_ticket);
     }
       
@@ -349,17 +350,18 @@ function cas_login_check() {
     $user_up = array(
       "roles" => $roles,
     );
-    $user = user_save($user, $user_up);
+    $acct = user_save($acct, $user_up);
     
     $edit = array();
     if (module_exists('persistent_login') && $_SESSION['cas_remember']) {
       $edit['persistent_login'] = 1;
     }
+    $user = $acct; 
     // tHIS SHOULD CALL THE LOGIN HOOK
     user_login_finalize($edit); 
     //user_module_invoke('login', $edit, $user);
     drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
-    if ($edit['persistent_login'] == 1) {
+    if (!empty($edit['persistent_login']) &&  $edit['persistent_login']== 1) {
       drupal_set_message(t('You will remain logged in on this computer even after you close your browser.'));
     }
     watchdog('user', 'Session opened for %name.', array('%name' => $user->name));
@@ -369,7 +371,9 @@ function cas_login_check() {
     }
     // if we have a good user
     else {
-      session_destroy();
+      // Not sure if we should be doing this.  Perhaps some kind of session start needs to be called prior to cas 
+      // tests?   
+      //session_destroy();
       $user = drupal_anonymous_user();
     }
   }
@@ -919,7 +923,7 @@ function cas_admin_settings() {
  * Saves the page that the user was on when login was requested or required
  */
 function cas_save_page() {
-  if (!$_SESSION['cas_goto']) {
+  if (!empty($_SESSION['cas_goto'])) {
     if (arg(0) == 'cas') {
       //we're were destined to the CAS login page, so set
       //the page to the referrer.
@@ -939,14 +943,14 @@ function cas_login_page() {
   global $user;
   $destination = variable_get('site_frontpage', 'node');
   // If it is the user's first CAS login and initial login redirection is enabled, go to the set page
-  if ($_SESSION['cas_first_login'] && (variable_get('cas_first_login', 0) == 1)) {
+  if (!empty($_SESSION['cas_first_login']) && (variable_get('cas_first_login', 0) == 1)) {
     $destination = variable_get('cas_first_login_destination', '');
     unset($_SESSION['cas_first_login']);
   }
-  elseif ($_REQUEST['destination']) {
+  elseif (!empty($_REQUEST['destination'])) {
     $destination = $_REQUEST['destination'];
   }
-  elseif ($_SESSION['cas_goto']) {
+  elseif (!empty($_SESSION['cas_goto'])) {
     $destination = $_SESSION['cas_goto'];
   }
   unset($_SESSION['cas_goto']);
@@ -1213,7 +1217,7 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
       }
       drupal_add_css(drupal_get_path('module', 'cas') . '/cas.css', 'module');
       drupal_add_js(drupal_get_path('module', 'cas') . '/cas.js');
-      if ($form_state['post']['cas_identifier'] == 1) {
+      if (!empty($form_state['post']['cas_identifier']) &&  $form_state['post']['cas_identifier']== 1) {
         $form['name']['#required'] = FALSE;
         $form['pass']['#required'] = FALSE;
         unset($form['#submit']);
@@ -1366,7 +1370,7 @@ function _cas_external_user_is_blocked($name) {
   $deny=FALSE; 
   $result = db_query("SELECT u.name FROM {users} u JOIN {authmap} m ON u.uid=m.uid WHERE status = 0 AND m.authname = LOWER(:uid)", array(':uid' => $name)); 
   foreach ($result as $record)  {
-    $deny = TRUE;  
+    if ($record->name) $deny = TRUE;  
   }
   return $deny;
 }
