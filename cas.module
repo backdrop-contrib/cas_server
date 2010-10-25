@@ -1205,6 +1205,7 @@ function _cas_force_login() {
  * Overrides specific from settings based on user policy.
  */
 function cas_form_alter(&$form, &$form_state, $form_id) { 
+
   //drupal_set_message($form_id.'<pre>'.print_r($form,1).'</pre>');
   switch ($form_id) {
     case 'user_login':    
@@ -1214,7 +1215,8 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
       }
       drupal_add_css(drupal_get_path('module', 'cas') . '/cas.css', 'module');
       drupal_add_js(drupal_get_path('module', 'cas') . '/cas.js');
-      if (!empty($form_state['post']['cas_identifier']) &&  $form_state['post']['cas_identifier']== 1) {
+
+      if (!empty($form_state['input']['cas_identifier']) &&  $form_state['input']['cas_identifier']== 1) {
         $form['name']['#required'] = FALSE;
         $form['pass']['#required'] = FALSE;
         unset($form['#submit']);
@@ -1233,7 +1235,7 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
       );
       
       $form['cas_links'] = array(
-        '#value' => theme('item_list', $items),
+        '#markup' => theme('item_list', $items),
         '#weight' => 1,
       );
 
@@ -1284,12 +1286,13 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
 /**
  * Login form _validate hook
  */
-function cas_login_validate($form, &$form_state) {
-  if ($form_state['values']['persistent_login'] == 1) {
+function cas_login_validate(&$form, &$form_state) {
+  if (!empty($form_state['values']['persistent_login']) && $form_state['values']['persistent_login'] == 1) {
     $_SESSION['cas_remember'] = 1;
   }
   $_REQUEST['destination'] = 'cas';
-  drupal_redirect_form($form, 'cas');
+  $form_state['redirect'] = 'cas';  
+  drupal_redirect_form($form_state);
 }
 
 /*
