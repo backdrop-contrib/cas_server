@@ -60,7 +60,6 @@ function cas_invoke_auth_filter($cas_name) {
   foreach (module_implements('auth_filter') as $module) {
     $function = $module . '_auth_filter';
     if (function_exists($function)) {
-         watchdog('debug','Fire filter transform' . $function); 
  
       if (($return = $function('cas', $cas_name)) === FALSE) {
         return FALSE;
@@ -221,7 +220,6 @@ function cas_login_check() {
     }
     
     $cas_name = phpCAS::getUser();
-    watchdog('debug','Got User' . $cas_name); 
     
     /*
      * Invoke hook_auth_transform($op, &$username)
@@ -232,10 +230,9 @@ function cas_login_check() {
      *
      * Note: this transformation needs to happen before we check for blocked users.
      */
-    watchdog('debug','Before transform' . $cas_name); 
     
     cas_invoke_auth_transform($cas_name);
-   watchdog('debug','after transform' . $cas_name); 
+
  
     /*
      * Invoke hook_auth_filter($op, &$username)
@@ -245,45 +242,42 @@ function cas_login_check() {
      * eg. if you want to filter out people without LDAP home directories
      */
     if (cas_invoke_auth_filter($cas_name) === FALSE) {
-       watchdog('debug','auth filter Denied' . $cas_name); 
  
       drupal_set_message(t('The user account %name is not available on this site.', array('%name' => $cas_name)), 'error');
       return;
     }
-     watchdog('debug','User checks ' . $cas_name); 
  
     // blocked user check
     
     if ($cas_authmap && user_is_blocked($cas_name)) {
       // blocked in user administration
-      watchdog('debug','Blocked' . $cas_name); 
       drupal_set_message(t('The username %name has been blocked.', array('%name' => $cas_name)), 'error');
       return;
     }
-       watchdog('debug','External user blocked' . $cas_name); 
+
  
     // this is because users can change their name. 
     if (!$cas_authmap && _cas_external_user_is_blocked($cas_name)) {
-      watchdog('debug','Blocked' . $cas_name); 
+
       // blocked in user administration
       drupal_set_message(t('The username %name has been blocked.', array('%name' => $cas_name)), 'error');
       return;
     }
-    watchdog('debug','Denied check' . $cas_name); 
+
      
     if (drupal_is_denied('user', $cas_name)) {
-      watchdog('debug','Denied' . $cas_name); 
+
       
       // denied by access controls
       drupal_set_message(t('The name %name is a reserved username.', array('%name' => $cas_name)), 'error');
       return;
     } 
-    watchdog('debug','Done with checks transform' . $cas_name); 
+
  
     // try to log into Drupal
     if ($cas_authmap) {
       // users are coming from Drupal; no need to use the external_load and the authmap
-      watchdog('debug','Loading' . $cas_name); 
+
       $acct = user_load_by_name($cas_name);
     }
     else {
@@ -295,7 +289,7 @@ function cas_login_check() {
         if ($acct->uid) user_set_authmaps($user, array('authname_cas' => $cas_name));
       }
     }
-    watchdog('debug', print_r($acct,1)); 
+
     
     // If we don't have a user register them.
     if (!$acct->uid ) {
