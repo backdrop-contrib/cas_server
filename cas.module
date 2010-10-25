@@ -155,6 +155,7 @@ function cas_login_check() {
     $cas_cert          = (string)variable_get('cas_cert', '');
     $all_roles         = user_roles();
     $cas_roles         = array();
+    
     foreach ($all_roles as $key => $value) {
       if (array_key_exists($key, variable_get('cas_auto_assigned_role', array(DRUPAL_AUTHENTICATED_RID)))) {
         $cas_roles[$key] = $key;
@@ -163,7 +164,8 @@ function cas_login_check() {
     if ( ($debugFile = variable_get("cas_debugfile", "")) != "" ) {
       phpCAS::setDebug($debugFile);
     }
-    // Drupal takes care of its own session
+    // Start a drupal session
+    drupal_session_start(); 
     $start_session = (boolean)FALSE;
     cas_save_page();
     if (!empty($_GET['ticket'])) $cas_service_ticket = $_GET['ticket'];  // We use this later for CAS 3 logoutRequests
@@ -195,7 +197,7 @@ function cas_login_check() {
           phpCAS::setCasServerCACert($cas_cert);
           break;
       }
-    }
+    } 
     
     // We're going to try phpCAS auth test
     if (!$cas_force_login) {
@@ -220,6 +222,7 @@ function cas_login_check() {
     }
     
     $cas_name = phpCAS::getUser();
+    watchdog('debug','FOund user '. $cas_name); 
     
     /*
      * Invoke hook_auth_transform($op, &$username)
@@ -336,7 +339,7 @@ function cas_login_check() {
     }
       
     // update the roles and reset the password
-    $roles = $user->roles;
+    $roles = $acct->roles;
     foreach ($cas_roles as $role) {
       $roles[$role] = $role;
     }
@@ -361,7 +364,7 @@ function cas_login_check() {
     watchdog('user', 'Session opened for %name.', array('%name' => $user->name));
     // We can't count on the menu because we're changing login states.
    
-    //cas_login_page();
+    cas_login_page();
     }
     // if we have a good user
     else {
@@ -505,7 +508,6 @@ function cas_library_version_get($dir, &$error = NULL) {
   if (!defined('PHPCAS_VERSION')) {
     $error = t('The phpCAS library was loaded, but the version could not be determined.');
   }
-  
   return PHPCAS_VERSION;
 }
 
@@ -523,9 +525,11 @@ function cas_library_version_get($dir, &$error = NULL) {
  */
 function cas_library_version_check($form_element, $form_state) {
   if ($version = cas_library_version_get($form_state['values']['cas_library_dir'], $error)) {
+
     $form_element['library']['cas_library_version'] = array(
+      '#type' => 'item', 
       '#title' => t('Library version'),
-      '#value' => '<pre>' . check_plain($version) . '</pre>',
+      '#markup' => '<pre>' . check_plain($version) . '</pre>',
       '#description' => t('The phpCAS library was loaded and returned this version information.'),
     );
   }
@@ -1053,7 +1057,7 @@ function _cas_allow_check_for_login() {
   }
   
   // Check to see if we already have. 
-  if ($_COOKIE['cas_login_checked']) { 
+  if (!empty($_COOKIE['cas_login_checked'])) { 
     return FALSE; 
   }
   
@@ -1110,7 +1114,7 @@ function _cas_allow_check_for_login() {
     return FALSE;
   }
   // Drush
-  if (stristr($_SERVER['argv'][0], 'drush')) {
+  if (!empty($_SERVER['argv'][0]) && stristr($_SERVER['argv'][0], 'drush')) {
     return FALSE;
   }
   
