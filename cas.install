@@ -36,20 +36,6 @@ function cas_schema() {
 }
 
 /**
- * Implementation of hook_install().
- */
-function cas_install() {
-  drupal_install_schema('cas');
-}
-
-/**
- * Implementation of hook_uninstall().
- */
-function cas_uninstall() {
-  drupal_uninstall_schema('cas');
-}
-
-/**
  * Implementation of hook_update_N().
  */
 function cas_update_1() {
