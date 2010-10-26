@@ -1219,8 +1219,8 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
       if (!empty($form_state['input']['cas_identifier']) &&  $form_state['input']['cas_identifier']== 1) {
         $form['name']['#required'] = FALSE;
         $form['pass']['#required'] = FALSE;
-        unset($form['#submit']);
-        $form['#validate'] = array('cas_login_validate');
+        unset($form['#validate']);
+        $form['#submit'] = array('cas_login_submit');
       }
 
       $items = array();
@@ -1286,12 +1286,14 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
 /**
  * Login form _validate hook
  */
-function cas_login_validate(&$form, &$form_state) {
+function cas_login_submit(&$form, &$form_state) {
   if (!empty($form_state['values']['persistent_login']) && $form_state['values']['persistent_login'] == 1) {
     $_SESSION['cas_remember'] = 1;
   }
-  $_REQUEST['destination'] = 'cas';
+  unset($_GET['destination']);  
+  //$_REQUEST['destination'] = 'cas';
   $form_state['redirect'] = 'cas';  
+  // drupal_set_message('Custom submit handler: <pre>'.print_r($form_state,1). '</pre>' ); 
   drupal_redirect_form($form_state);
 }
 
