@@ -309,14 +309,14 @@ function cas_login_check() {
         if ($cas_domain) $user_default['mail'] = $cas_name . '@' . $cas_domain;
         
         // Become user 1 to be able to save profile information
-        session_save_session(FALSE);
+        drupal_save_session(FALSE);
         $tmp_acct = $user; 
         $user = user_load(1);
         
         // now save the user and become the new user.
         $acct = user_save("", $user_default);
         $user = $tmp_acct; 
-        session_save_session(TRUE);
+        drupal_save_session(TRUE);
         watchdog("user", 'new user: %n (CAS)', array('%n' => $user->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$user->uid"));
         $edit = array(); 
         if (($user->uid) && ($user->uid > 0) && $cas_authmap) {
@@ -1093,7 +1093,7 @@ function _cas_allow_check_for_login() {
   }
 
   // No need if we're on the cas login page. 
-  list($arg0) = split('/', $_GET['q']);
+  list($arg0) = explode('/', $_GET['q']);
   // Don't even do the test if we're hitting the cas page
   if ($arg0 == "cas") {
     return FALSE;
