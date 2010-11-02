@@ -487,7 +487,7 @@ function cas_library_version_get($dir, &$error = NULL) {
   $error = '';
 
   // Gets path to library directory, path to the CAS.php file.
-  if($dir != '')
+  if ($dir != '')
     $dir  = rtrim($dir, '/') . '/';
   $filename = $dir . 'CAS.php';
   
@@ -644,7 +644,7 @@ function cas_admin_settings() {
     '#type' => 'checkbox',
     '#title' => t('Check with the CAS server to see if the user is already logged in?'),
     '#default_value' => variable_get('cas_check_first', 0),
-    '#description' => t('This implements the <a href="@cas-gateway">Gateway feature</a> of the CAS Protocol. The check is only performed the first time a user visits your site, so that the local drupal logout is still useful for site admins.',array('@cas-gateway' => 'https://wiki.jasig.org/display/CAS/gateway')),
+    '#description' => t('This implements the <a href="@cas-gateway">Gateway feature</a> of the CAS Protocol. The check is only performed the first time a user visits your site, so that the local drupal logout is still useful for site admins.', array('@cas-gateway' => 'https://wiki.jasig.org/display/CAS/gateway')),
   );
   
   $form['server']['cas_cert_verify'] = array(
