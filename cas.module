@@ -1215,8 +1215,8 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
       if (variable_get('cas_login_form', CAS_NO_LINK) == CAS_NO_LINK) {
         break;
       }
-      drupal_add_css(drupal_get_path('module', 'cas') . '/cas.css', 'module');
-      drupal_add_js(drupal_get_path('module', 'cas') . '/cas.js');
+      $form['#attached']['css'][] = drupal_get_path('module', 'cas') . '/cas.css';
+      $form['#attached']['js'][] = drupal_get_path('module', 'cas') . '/cas.js';
 
       if (!empty($form_state['input']['cas_identifier']) &&  $form_state['input']['cas_identifier']== 1) {
         $form['name']['#required'] = FALSE;
@@ -1227,17 +1227,19 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
 
       $items = array();
       $items[] = array(
-        'data' => l(t(variable_get('cas_login_invite', CAS_LOGIN_INVITE_DEFAULT)), '', array('fragment' => ' ', 'external' => TRUE)),
-        'class' => 'cas-link',
+        'data' => l(t(variable_get('cas_login_invite', CAS_LOGIN_INVITE_DEFAULT)), '#'),
+        'class' => array('cas-link'),
       );
       
       $items[] = array(
-        'data' => l(t(variable_get('cas_login_drupal_invite', CAS_LOGIN_DRUPAL_INVITE_DEFAULT)), '', array('fragment' => ' ', 'external' => TRUE)), 
-        'class' => 'uncas-link',
+        'data' => l(t(variable_get('cas_login_drupal_invite', CAS_LOGIN_DRUPAL_INVITE_DEFAULT)), '#'),
+        'class' => array('uncas-link'),
       );
       
       $form['cas_links'] = array(
-        '#markup' => theme('item_list', $items),
+        '#theme' => 'item_list',
+        '#items' => $items,
+        '#attributes' => array('class' => array('cas-links')),
         '#weight' => 1,
       );
 
@@ -1245,7 +1247,7 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
 
       $form['cas_identifier'] = array(
         '#type' => 'checkbox',
-        '#title' => t('Log in using NetID'),
+        '#title' => t('Log in using CAS'),
         '#default_value' => (variable_get('cas_login_form', CAS_NO_LINK) == CAS_ADD_LINK ? 0 : 1),
         '#weight' => -1,
         '#description' => t(variable_get('cas_login_redir_message', CAS_LOGIN_REDIR_MESSAGE)),

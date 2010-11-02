@@ -2,26 +2,27 @@
 (function ($) {
 Drupal.behaviors.cas = {
   attach: function (context) {
-	  var $loginElements = $("#edit-name-wrapper, #user-login-form div.form-item-pass, #user-login-form div.form-item-name, #user-login-form li");
-	  var $casElements = $("#edit-cas-identifier-wrapper, li.uncas-link");
-	  $("#edit-cas-identifier").hide();
-	  $("#edit-cas-identifier-wrapper label").hide();
+	  var loginElements = $('.form-item-name, .form-item-pass, li.cas-link');
+	  var casElements = $('.form-item-cas-identifier, li.user-link, li.uncas-link');
+
+	  $(".form-item-cas-identifier input").hide();
+	  $(".form-item-cas-identifier label").hide();
 	  if($("#edit-cas-identifier").attr("checked")) {
-	    $loginElements.hide();
+	    loginElements.hide();
 	    // Use .css("display", "block") instead of .show() to be Konqueror friendly.
-	    $casElements.css("display", "block");
+	    casElements.css("display", "block");
 	  }
 	  else
 	  {
-	    $loginElements.css("display", "block");
+	    loginElements.css("display", "block");
 	    // Use .css("display", "block") instead of .show() to be Konqueror friendly.
-	    $casElements.hide();
+	    casElements.hide();
 	  }
 	
 	  $("li.cas-link", context)
 	    .click( function() {
-	       $loginElements.hide();
-	       $casElements.css("display", "block");
+	       loginElements.hide();
+	       casElements.css("display", "block");
 		   $("#edit-cas-identifier").attr("checked", true);
 	      // Remove possible error message.
 	      $("#edit-name, #edit-pass").removeClass("error");
@@ -30,8 +31,8 @@ Drupal.behaviors.cas = {
 	    });
 	  $("li.uncas-link", context)
 	    .click(function() {
-	       $loginElements.css("display", "block");
-	       $casElements.hide();
+	       loginElements.css("display", "block");
+	       casElements.hide();
 		   $("#edit-cas-identifier").attr("checked", false);
 	      // Clear cas Identifier field and remove possible error message.
 	      $("div.messages.error").css("display", "block");
