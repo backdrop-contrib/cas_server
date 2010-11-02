@@ -147,7 +147,7 @@ function cas_login_check() {
 
     // Variable set
     $cas_user_register = variable_get('cas_user_register', 1);
-    $cas_authmap       = variable_get('cas_authmap', 0);
+    $cas_authmap       = variable_get('cas_authmap', CAS_AUTHMAP_EXTERNAL);
     $server_version    = (string)variable_get('cas_version', '2.0');
     $server_cas_server = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
     $server_port       = (int)variable_get('cas_port', '443');
@@ -253,7 +253,7 @@ function cas_login_check() {
  
     // blocked user check
     
-    if ($cas_authmap && user_is_blocked($cas_name)) {
+    if (($cas_authmap == CAS_AUTHMAP_INTERNAL) && user_is_blocked($cas_name)) {
       // blocked in user administration
       drupal_set_message(t('The username %name has been blocked.', array('%name' => $cas_name)), 'error');
       return;
@@ -261,7 +261,7 @@ function cas_login_check() {
 
  
     // this is because users can change their name. 
-    if (!$cas_authmap && _cas_external_user_is_blocked($cas_name)) {
+    if (($cas_authmap == CAS_AUTHMAP_EXTERNAL) && _cas_external_user_is_blocked($cas_name)) {
 
       // blocked in user administration
       drupal_set_message(t('The username %name has been blocked.', array('%name' => $cas_name)), 'error');
@@ -279,7 +279,7 @@ function cas_login_check() {
 
  
     // try to log into Drupal
-    if ($cas_authmap) {
+    if ($cas_authmap == CAS_AUTHMAP_INTERNAL) {
       // users are coming from Drupal; no need to use the external_load and the authmap
 
       $acct = user_load_by_name($cas_name);
@@ -305,7 +305,7 @@ function cas_login_check() {
           "status" => 1,
           "roles" => $cas_roles,
         );
-        if (!$cas_authmap) $user_default['authname_cas'] = $cas_name;
+        if ($cas_authmap == CAS_AUTHMAP_EXTERNAL) $user_default['authname_cas'] = $cas_name;
         if ($cas_domain) $user_default['mail'] = $cas_name . '@' . $cas_domain;
         
         // Become user 1 to be able to save profile information
@@ -319,7 +319,7 @@ function cas_login_check() {
         drupal_save_session(TRUE);
         watchdog("user", 'new user: %n (CAS)', array('%n' => $user->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$user->uid"));
         $edit = array(); 
-        if (($user->uid) && ($user->uid > 0) && $cas_authmap) {
+        if (($user->uid) && ($user->uid > 0) && ($cas_authmap == CAS_AUTHMAP_INTERNAL)) {
           user_module_invoke( 'login', $edit, $user);
           unset($_SESSION['cas_goto']);
           watchdog('user', 'Session opened for %name.', array('%name' => $user->name));
@@ -714,7 +714,7 @@ function cas_admin_settings() {
   $form['account']['cas_authmap'] = array(
     '#type' => 'checkbox',
     '#title' => t('Is Drupal also the CAS user repository?'),
-    '#default_value' => variable_get('cas_authmap', 0),
+    '#default_value' => variable_get('cas_authmap', CAS_AUTHMAP_EXTERNAL),
     '#description' => t('In most cases, the answer will be no, But in some cases, the Drupal user database could be used as the central user store for single sign-on. If this is the case, select this option.'),
   );
   
@@ -1342,7 +1342,7 @@ function cas_current_user() {
  * @return unknown
  */
 function cas_is_external_user() {
-  if (variable_get('cas_authmap', 0)== CAS_AUTHMAP_EXTERNAL) { 
+  if (variable_get('cas_authmap', CAS_AUTHMAP_EXTERNAL) == CAS_AUTHMAP_EXTERNAL) {
      $authname = cas_current_user(); 
      $map = user_get_authmaps($authname);
      if ($map['cas']) { 
