@@ -336,7 +336,7 @@ function cas_login_check() {
      
     // Save single sign out information
     if (!empty($cas_service_ticket) && variable_get('cas_signout', FALSE)) {
-      _cas_single_sign_out_save_token($user, $cas_service_ticket);
+      _cas_single_sign_out_save_token($acct, $cas_service_ticket);
     }
       
     // update the roles and reset the password
