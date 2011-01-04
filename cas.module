@@ -296,12 +296,13 @@ function cas_login_check() {
 
     
     // If we don't have a user register them.
-    if (!$acct->uid ) {
+    if (empty($acct) || !$acct->uid ) {
       if ($cas_user_register == 1) {
         $user_default = array(
           "name" => $cas_name,
           "pass" => user_password(),
           "init" => $cas_name,
+          "mail" => '',
           "status" => 1,
           "roles" => $cas_roles,
         );
@@ -317,7 +318,7 @@ function cas_login_check() {
         $acct = user_save("", $user_default);
         $user = $tmp_acct; 
         drupal_save_session(TRUE);
-        watchdog("user", 'new user: %n (CAS)', array('%n' => $user->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$user->uid"));
+        watchdog("user", 'new user: %n (CAS)', array('%n' => $user->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$acct->uid"));
         $edit = array(); 
         if (($user->uid) && ($user->uid > 0) && ($cas_authmap == CAS_AUTHMAP_INTERNAL)) {
           user_module_invoke( 'login', $edit, $user);
