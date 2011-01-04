@@ -306,7 +306,6 @@ function cas_login_check() {
           "status" => 1,
           "roles" => $cas_roles,
         );
-        if ($cas_authmap == CAS_AUTHMAP_EXTERNAL) $user_default['authname_cas'] = $cas_name;
         if ($cas_domain) $user_default['mail'] = $cas_name . '@' . $cas_domain;
         
         // Become user 1 to be able to save profile information
@@ -315,7 +314,11 @@ function cas_login_check() {
         $user = user_load(1);
         
         // now save the user and become the new user.
-        $acct = user_save("", $user_default);
+        $acct = user_save('', $user_default);
+        if ($cas_authmap == CAS_AUTHMAP_EXTERNAL) {
+          user_set_authmaps($acct, array('authname_cas' => $cas_name));
+        }
+
         $user = $tmp_acct; 
         drupal_save_session(TRUE);
         watchdog("user", 'new user: %n (CAS)', array('%n' => $user->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$acct->uid"));
@@ -1330,8 +1333,8 @@ function _cas_single_sign_out_check() {
  * Return the current cas user based on sessioin variables
  *
  */
-function cas_current_user() { 
-  return $_SESSION['phpCAS']['user']; 
+function cas_current_user() {
+  return isset($_SESSION['phpCAS']['user']) ? $_SESSION['phpCAS']['user'] : FALSE;
 }
 
 /**
@@ -1343,14 +1346,9 @@ function cas_current_user() {
  */
 function cas_is_external_user() {
   if (variable_get('cas_authmap', CAS_AUTHMAP_EXTERNAL) == CAS_AUTHMAP_EXTERNAL) {
-     $authname = cas_current_user(); 
+     $authname = cas_current_user();
      $map = user_get_authmaps($authname);
-     if ($map['cas']) { 
-       return TRUE;     
-     }
-     else {
-       return FALSE; 
-     }
+     return isset($map['cas']);
   }
   else { 
     return TRUE;  
