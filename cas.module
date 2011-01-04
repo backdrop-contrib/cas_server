@@ -355,14 +355,11 @@ function cas_login_check() {
       $edit['persistent_login'] = 1;
     }
     $user = $acct; 
-    // tHIS SHOULD CALL THE LOGIN HOOK
     user_login_finalize($edit); 
-    //user_module_invoke('login', $edit, $user);
     drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
     if (!empty($edit['persistent_login']) &&  $edit['persistent_login']== 1) {
       drupal_set_message(t('You will remain logged in on this computer even after you close your browser.'));
     }
-    watchdog('user', 'Session opened for %name.', array('%name' => $user->name));
     // We can't count on the menu because we're changing login states.
    
     cas_login_page();
