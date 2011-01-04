@@ -296,16 +296,16 @@ function cas_login_check() {
 
     
     // If we don't have a user register them.
-    if (empty($acct) || !$acct->uid ) {
+    if (!$acct->uid ) {
       if ($cas_user_register == 1) {
         $user_default = array(
           "name" => $cas_name,
           "pass" => user_password(),
           "init" => $cas_name,
-          "mail" => '',
           "status" => 1,
           "roles" => $cas_roles,
         );
+        if ($cas_authmap == CAS_AUTHMAP_EXTERNAL) $user_default['authname_cas'] = $cas_name;
         if ($cas_domain) $user_default['mail'] = $cas_name . '@' . $cas_domain;
         
         // Become user 1 to be able to save profile information
@@ -314,14 +314,10 @@ function cas_login_check() {
         $user = user_load(1);
         
         // now save the user and become the new user.
-        $acct = user_save('', $user_default);
-        if ($cas_authmap == CAS_AUTHMAP_EXTERNAL) {
-          user_set_authmaps($acct, array('authname_cas' => $cas_name));
-        }
-
+        $acct = user_save("", $user_default);
         $user = $tmp_acct; 
         drupal_save_session(TRUE);
-        watchdog("user", 'new user: %n (CAS)', array('%n' => $user->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$acct->uid"));
+        watchdog("user", 'new user: %n (CAS)', array('%n' => $user->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$user->uid"));
         $edit = array(); 
         if (($user->uid) && ($user->uid > 0) && ($cas_authmap == CAS_AUTHMAP_INTERNAL)) {
           user_module_invoke( 'login', $edit, $user);
@@ -340,7 +336,7 @@ function cas_login_check() {
      
     // Save single sign out information
     if (!empty($cas_service_ticket) && variable_get('cas_signout', FALSE)) {
-      _cas_single_sign_out_save_token($acct, $cas_service_ticket);
+      _cas_single_sign_out_save_token($user, $cas_service_ticket);
     }
       
     // update the roles and reset the password
@@ -1333,8 +1329,8 @@ function _cas_single_sign_out_check() {
  * Return the current cas user based on sessioin variables
  *
  */
-function cas_current_user() {
-  return isset($_SESSION['phpCAS']['user']) ? $_SESSION['phpCAS']['user'] : FALSE;
+function cas_current_user() { 
+  return $_SESSION['phpCAS']['user']; 
 }
 
 /**
@@ -1346,9 +1342,14 @@ function cas_current_user() {
  */
 function cas_is_external_user() {
   if (variable_get('cas_authmap', CAS_AUTHMAP_EXTERNAL) == CAS_AUTHMAP_EXTERNAL) {
-     $authname = cas_current_user();
+     $authname = cas_current_user(); 
      $map = user_get_authmaps($authname);
-     return isset($map['cas']);
+     if ($map['cas']) { 
+       return TRUE;     
+     }
+     else {
+       return FALSE; 
+     }
   }
   else { 
     return TRUE;  
