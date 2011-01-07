@@ -956,7 +956,7 @@ function cas_login_page() {
   unset($_SESSION['cas_goto']);
   
   // Change the user/login and user/register urls to the users current page. 
-  if ($destination == 'user/login' || $destination = 'user/register') { 
+  if ($destination == 'user/login' || $destination == 'user/register') { 
     $destination = 'user/' . $user->uid; 
   }
   
