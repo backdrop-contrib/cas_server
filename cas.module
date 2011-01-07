@@ -88,7 +88,7 @@ function cas_menu_check() {
   global $user;
   $access = FALSE;
   if ($user->uid == 0) $access = TRUE;
-  if (strpos($_GET['q'], 'admin/build/menu') !== FALSE) {
+  if (strpos($_GET['q'], 'admin/structure/menu') !== FALSE) {
     $access = TRUE;
   }
   return $access;
