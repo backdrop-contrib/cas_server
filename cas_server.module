@@ -47,7 +47,7 @@ function cas_server_service_return() {
   if ($service && $user->uid) { 
     $ticket = _cas_server_save_ticket($user->uid, $service); 
     setcookie(CAS_LOGIN_COOKIE, "", -3600); 
-    drupal_goto($service, 'ticket='. urlencode($ticket)); 
+    drupal_goto($service, 'ticket=' . urlencode($ticket)); 
   }
 }
 
@@ -113,18 +113,18 @@ function cas_server_service_validate() {
   header('Content-type:', 'text/xml');  
   if ($user_name) { 
     //@TODO Generate proxy granting ticket
-    print "<cas:serviceResponse xmlns:cas='http://www.yale.edu/tp/cas'>\n". 
-          "  <cas:authenticationSuccess>\n".
-          "    <cas:user>$user_name</cas:user>\n".
-          "  </cas:authenticationSuccess>\n".
+    print "<cas:serviceResponse xmlns:cas='http://www.yale.edu/tp/cas'>\n" . 
+          "  <cas:authenticationSuccess>\n" .
+          "    <cas:user>$user_name</cas:user>\n" .
+          "  </cas:authenticationSuccess>\n" .
           "</cas:serviceResponse>\n"; 
     watchdog('cas', 'User %name CAS sucessully authenticated.', array('%name' => $user_name));
   } 
   else {
-    print "<cas:serviceReponse xmlns:cas='http://www.yale.edu/tp/cas'>\n".
-          "  <cas:authenticationFailure code=\"$cas_error\">\n".
-          "     Ticket $ticket not recognized.\n".
-          "  </cas:authenticationFailure>".
+    print "<cas:serviceReponse xmlns:cas='http://www.yale.edu/tp/cas'>\n" .
+          "  <cas:authenticationFailure code=\"$cas_error\">\n" .
+          "     Ticket $ticket not recognized.\n" .
+          "  </cas:authenticationFailure>" .
           "</cas:serviceResponse>"; 
     watchdog('cas', 'User %name authentication failed!', array('%name' => $user_name));
   }
@@ -158,8 +158,8 @@ function _cas_server_validate($service, $ticket) {
  */
 function _cas_server_save_ticket($uid, $service) { 
   // Generate the ticket
-  $time = time(); 
-  $ticket = 'ST-'. user_password(); 
+  $time = REQUEST_TIME; 
+  $ticket = 'ST-' . user_password(); 
   
   $ticket_data = array($uid, $service, $ticket, $time); 
   // Save the ticket to the db
@@ -168,6 +168,7 @@ function _cas_server_save_ticket($uid, $service) {
   }
   return $ticket; 
 }
+
 /**
  * Cas Logout
  * @TODO: Implement single sign out support
@@ -178,7 +179,7 @@ function cas_server_logout() {
   module_invoke_all('user', 'logout', NULL, $user);
   $output = t('<p>You have been logged out successfully</p>');
   if ($_GET['url'])  {
-    $output .= '<p>'. l(t('Continue'), $_GET['url']) .'</p>';
+    $output .= '<p>' . l(t('Continue'), $_GET['url']) . '</p>';
   }
   return $output; 
 }

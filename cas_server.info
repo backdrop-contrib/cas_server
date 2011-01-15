@@ -1,4 +1,5 @@
 ; $Id $
 name = CAS Server
-core = 6.x
+core = 7.x
+files[] = cas_servier.module
 description = "Provides protocol compliant CAS Server"
