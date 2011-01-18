@@ -976,9 +976,8 @@ function cas_logout() {
   
   
   // Destroy the current session:
+  module_invoke_all('user_logout', $user);
   session_destroy();
-  $edit = array(); 
-  user_module_invoke( 'logout', $edit, $user);
   
   // We have to use $GLOBALS to unset a global variable:
   $user   = user_load(0);
