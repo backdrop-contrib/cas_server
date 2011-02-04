@@ -110,9 +110,7 @@ function cas_menu_logout_check() {
  *
  */
 function cas_login_check() {
-  global $user, $account;
-  
-  
+  global $user, $account;  
   if ($user->uid) {
     //Don't Login  because we already are
     return; 
@@ -169,7 +167,7 @@ function cas_login_check() {
     drupal_session_start(); 
     $start_session = (boolean)FALSE;
     cas_save_page();
-    if (!empty($_GET['ticket'])) $cas_service_ticket = $_GET['ticket'];  // We use this later for CAS 3 logoutRequests
+    _cas_single_sign_out_save_ticket();  // We use this later for CAS 3 logoutRequests
     if ( variable_get("cas_proxy", 0) ) {
       phpCAS::proxy($server_version, $server_cas_server, $server_port, $server_uri, $start_session);
       $casPGTStoragePath = variable_get("cas_pgtpath", "");
@@ -334,8 +332,8 @@ function cas_login_check() {
     if (!empty($acct) && $acct->uid > 0) {
      
     // Save single sign out information
-    if (!empty($cas_service_ticket) && variable_get('cas_signout', FALSE)) {
-      _cas_single_sign_out_save_token($acct, $cas_service_ticket);
+    if (!empty($_SESSION['cas_ticket']) && variable_get('cas_signout', FALSE)) {
+      _cas_single_sign_out_save_token($acct);
     }
       
     // update the roles and reset the password
@@ -1310,21 +1308,34 @@ function cas_login_submit(&$form, &$form_state) {
 function _cas_single_sign_out_check() {
   if (variable_get('cas_signout', FALSE) && array_key_exists("logoutRequest", $_POST)) {
     $cas_logout_request_xml_string = utf8_encode($_POST["logoutRequest"]);     // it's important!
-    if ($cas_logout_request_xml = domxml_open_mem($cas_logout_request_xml_string)) {
-      $cas_session_indexes = $cas_logout_request_xml->get_elements_by_tagname( "SessionIndex" );
-      if ($cas_session_indexes[0] != NULL) {
-        $cas_session_index = $cas_session_indexes[0]->get_content();
+    $cas_logout_request_xml = new SimpleXMLElement($cas_logout_request_xml_string);    
+    if (is_object($cas_logout_request_xml)) {
+      $namespaces = $cas_logout_request_xml->getNameSpaces();
+      $xsearch = 'SessionIndex';  
+      if (isset($namespaces['samlp'])) {
+        $cas_logout_request_xml->registerXPathNamespace('samlp', $namespaces['samlp']); 
+         $xsearch = 'samlp:SessionIndex';
+      }
+      $cas_session_indexes = $cas_logout_request_xml->xpath($xsearch);
+      if ($cas_session_indexes) {
+        $cas_session_index = (string)$cas_session_indexes[0];
         // Log them out now.
         // first lets find out who we want to log off
-        $result = db_query_range("SELECT cld.uid FROM {cas_login_data} cld WHERE cld.cas_session_id = '%s'", $cas_session_index, 0, 1);
-        if ($result !== FALSE) {
-          while ($cas_login_data = db_fetch_object($result)) {
-            $uid = $cas_login_data->uid;
+        
+        $result = db_query_range("SELECT cld.uid FROM {cas_login_data} cld WHERE cld.cas_session_id = :ticket", 0 ,1 , array(':ticket' => $cas_session_index));
+        foreach ($result as $record) {
+            $uid = $record->uid;
+            $acct = user_load($uid);  
+            watchdog('user', 'Session closed for %name.', array('%name' => $acct->name));
             // remove all entry for user id in cas_login_data
-            db_query("DELETE FROM {cas_login_data} WHERE uid = %d", $uid);
+            db_delete('cas_login_data')
+              ->condition('uid', $uid)
+              ->execute();
+             
             // remove their session
-            db_query("DELETE FROM {sessions} WHERE uid = %d", $uid);
-            }
+            db_delete('sessions')
+              ->condition('uid', $uid)
+              ->execute(); 
         }
       }
     }
@@ -1358,12 +1369,28 @@ function cas_is_external_user() {
 }
 
 
-function _cas_single_sign_out_save_token($user, $cas_sign_out_token) {
+function _cas_single_sign_out_save_token($user) {
   // Ok lets save the CAS service ticket to DB so 
   // we can handle CAS logoutRequests when they come
-  if ($user->uid && $user->uid > 0 && !empty($cas_sign_out_token)) {
-   db_query("INSERT INTO {cas_login_data} (cas_session_id, uid) VALUES (:token, :uid)", array(':token' => $cas_sign_out_token, ':uid' => $user->uid));
+  if ($user->uid && $user->uid > 0 && !empty($_SESSION['cas_ticket'])) {
+   db_insert('cas_login_data')
+     ->fields(array(
+       'cas_session_id' => $_SESSION['cas_ticket'],
+       'uid' => $user->uid,
+       ))
+     ->execute(); 
+   unset($_SESSION['cas_ticket']);
    }
+}
+
+/**
+ * Make sure that we persist ticket because of redirects performed by Cas. 
+ *
+ */
+function _cas_single_sign_out_save_ticket() {
+  if (isset($_GET['ticket'])) {
+    $_SESSION['cas_ticket'] = $_GET['ticket'];
+  }
 }
 
 /*
