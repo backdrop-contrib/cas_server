@@ -753,7 +753,7 @@ function cas_admin_settings() {
     '#type' => 'checkbox',
     '#title' => t('Users cannot change password'),
     '#default_value' => variable_get('cas_hide_password', 0),
-    '#description' => t('Hide password field on the edit user form.'),
+    '#description' => t('Hide password field on the edit user form. This also removes the requirement to enter your current password before changing your e-mail address.'),
   );
   
   if (module_exists('persistent_login')) {
@@ -1270,7 +1270,16 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
       }
       
       //Remove the password fields from the form.
-      if (variable_get('cas_hide_password', 0) && cas_is_external_user())unset($form['account']['pass']);
+      if (variable_get('cas_hide_password', 0) && cas_is_external_user()) {
+        unset($form['account']['pass']);
+
+        // Also remove requirement to validate your current password before
+        // changing your e-mail address.
+        unset($form['account']['current_pass']);
+        unset($form['account']['current_pass_required_values']);
+        $form['#validate'] = array_diff($form['#validate'], array('user_validate_current_pass'));
+      }
+
       break;
     
     case 'user_pass':
