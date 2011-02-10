@@ -318,13 +318,6 @@ function cas_login_check() {
         $user = $tmp_acct; 
         drupal_save_session(TRUE);
         watchdog("user", 'new user: %n (CAS)', array('%n' => $acct->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$acct->uid"));
-        $edit = array(); 
-        if (($user->uid) && ($user->uid > 0) && ($cas_authmap == CAS_AUTHMAP_INTERNAL)) {
-          user_module_invoke( 'login', $edit, $user);
-          unset($_SESSION['cas_goto']);
-          watchdog('user', 'Session opened for %name.', array('%name' => $user->name));
-          drupal_goto("user/" . $user->uid . "/edit");
-        }
       }
     }
     
