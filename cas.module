@@ -283,7 +283,7 @@ function cas_login_check() {
       if (empty($acct) && variable_get('cas_hijack_user', 0)) {
         $acct = user_load_by_name($cas_name);
         
-        if ($acct->uid) user_set_authmaps($user, array('authname_cas' => $cas_name));
+        if (isset($acct->uid)) user_set_authmaps($user, array('authname_cas' => $cas_name));
       }
     }
 
@@ -304,19 +304,11 @@ function cas_login_check() {
         // Set a session variable to denote this the initial login
         $_SESSION['cas_first_login'] = TRUE;
 
-        // Become user 1 to be able to save profile information
-        drupal_save_session(FALSE);
-        $tmp_acct = $user; 
-        $user = user_load(1);
-        
         // now save the user and become the new user.
-        $acct = user_save('', $user_default);
+        $acct = user_save(drupal_anonymous_user(), $user_default);
         if ($cas_authmap == CAS_AUTHMAP_EXTERNAL) {
           user_set_authmaps($acct, array('authname_cas' => $cas_name));
         }
-
-        $user = $tmp_acct; 
-        drupal_save_session(TRUE);
         watchdog("user", 'new user: %n (CAS)', array('%n' => $acct->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$acct->uid"));
       }
     }
