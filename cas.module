@@ -283,7 +283,7 @@ function cas_login_check() {
       if (empty($acct) && variable_get('cas_hijack_user', 0)) {
         $acct = user_load_by_name($cas_name);
         
-        if (isset($acct->uid)) user_set_authmaps($user, array('authname_cas' => $cas_name));
+        if (isset($acct->uid)) user_set_authmaps($acct, array('authname_cas' => $cas_name));
       }
     }
 
