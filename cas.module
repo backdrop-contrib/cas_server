@@ -1189,47 +1189,47 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
   switch ($form_id) {
     case 'user_login':    
     case 'user_login_block':
-      if (variable_get('cas_login_form', CAS_NO_LINK) == CAS_NO_LINK) {
-        break;
+      if (variable_get('cas_login_form', CAS_ADD_LINK) == CAS_ADD_LINK || variable_get('cas_login_form', CAS_MAKE_DEFAULT) == CAS_MAKE_DEFAULT)
+      {
+        $form['#attached']['css'][] = drupal_get_path('module', 'cas') . '/cas.css';
+        $form['#attached']['js'][] = drupal_get_path('module', 'cas') . '/cas.js';
+  
+        if (!empty($form_state['input']['cas_identifier']) &&  $form_state['input']['cas_identifier']== 1) {
+          $form['name']['#required'] = FALSE;
+          $form['pass']['#required'] = FALSE;
+          unset($form['#validate']);
+          $form['#submit'] = array('cas_login_submit');
+        }
+  
+        $items = array();
+        $items[] = array(
+          'data' => l(t(variable_get('cas_login_invite', CAS_LOGIN_INVITE_DEFAULT)), '#'),
+          'class' => array('cas-link'),
+        );
+        
+        $items[] = array(
+          'data' => l(t(variable_get('cas_login_drupal_invite', CAS_LOGIN_DRUPAL_INVITE_DEFAULT)), '#'),
+          'class' => array('uncas-link'),
+        );
+        
+        $form['cas_links'] = array(
+          '#theme' => 'item_list',
+          '#items' => $items,
+          '#attributes' => array('class' => array('cas-links')),
+          '#weight' => 1,
+        );
+  
+        $form['links']['#weight'] = 2;
+  
+        $form['cas_identifier'] = array(
+          '#type' => 'checkbox',
+          '#title' => t('Log in using CAS'),
+          '#default_value' => (variable_get('cas_login_form', CAS_NO_LINK) == CAS_ADD_LINK ? 0 : 1),
+          '#weight' => -1,
+          '#description' => t(variable_get('cas_login_redir_message', CAS_LOGIN_REDIR_MESSAGE)),
+        );
+        $form['cas.return_to'] = array('#type' => 'hidden', '#value' => 'cas');
       }
-      $form['#attached']['css'][] = drupal_get_path('module', 'cas') . '/cas.css';
-      $form['#attached']['js'][] = drupal_get_path('module', 'cas') . '/cas.js';
-
-      if (!empty($form_state['input']['cas_identifier']) &&  $form_state['input']['cas_identifier']== 1) {
-        $form['name']['#required'] = FALSE;
-        $form['pass']['#required'] = FALSE;
-        unset($form['#validate']);
-        $form['#submit'] = array('cas_login_submit');
-      }
-
-      $items = array();
-      $items[] = array(
-        'data' => l(t(variable_get('cas_login_invite', CAS_LOGIN_INVITE_DEFAULT)), '#'),
-        'class' => array('cas-link'),
-      );
-      
-      $items[] = array(
-        'data' => l(t(variable_get('cas_login_drupal_invite', CAS_LOGIN_DRUPAL_INVITE_DEFAULT)), '#'),
-        'class' => array('uncas-link'),
-      );
-      
-      $form['cas_links'] = array(
-        '#theme' => 'item_list',
-        '#items' => $items,
-        '#attributes' => array('class' => array('cas-links')),
-        '#weight' => 1,
-      );
-
-      $form['links']['#weight'] = 2;
-
-      $form['cas_identifier'] = array(
-        '#type' => 'checkbox',
-        '#title' => t('Log in using CAS'),
-        '#default_value' => (variable_get('cas_login_form', CAS_NO_LINK) == CAS_ADD_LINK ? 0 : 1),
-        '#weight' => -1,
-        '#description' => t(variable_get('cas_login_redir_message', CAS_LOGIN_REDIR_MESSAGE)),
-      );
-      $form['cas.return_to'] = array('#type' => 'hidden', '#value' => 'cas');
       break;
 
     
