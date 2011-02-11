@@ -2,5 +2,4 @@
 name = cas
 core = 7.x
 description = "Provides single sign-on Central Authentication Services (CAS)"
-files[] = cas.module
 configure = admin/config/people/cas
