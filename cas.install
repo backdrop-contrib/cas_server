@@ -157,3 +157,12 @@ function cas_update_6301() {
     ->condition('module', 'cas')
     ->execute();
 }
+
+/**
+ * Depreciate "Verify the server using PEM cerificate" option.
+ */
+function cas_update_6300() {
+  if (variable_get('cas_cert_verify', 'none') == 'verify') {
+    variable_set('cas_cert_verify', 'none');
+  }
+}
