@@ -274,16 +274,25 @@ function cas_login_check() {
     // try to log into Drupal
     if ($cas_authmap == CAS_AUTHMAP_INTERNAL) {
       // users are coming from Drupal; no need to use the external_load and the authmap
-
       $acct = user_load_by_name($cas_name);
     }
     else {
       // users are external; use authmap table for associating external users
-      $acct = user_external_load($cas_name);
+      $uid = db_query("SELECT uid FROM {cas_user} WHERE cas_name = :cas_name", array(':cas_name' => $cas_name))->fetchField();
+      if ($uid) {
+        $acct = user_load($uid);
+      }
       if (empty($acct) && variable_get('cas_hijack_user', 0)) {
         $acct = user_load_by_name($cas_name);
         
-        if (isset($acct->uid)) user_set_authmaps($acct, array('authname_cas' => $cas_name));
+        if (isset($acct->uid)) {
+          db_insert('cas_user')
+            ->fields(array(
+              'uid' => $acct->uid,
+              'cas_name' => $cas_name,
+            ))
+            ->execute();
+        }
       }
     }
 
@@ -307,7 +316,12 @@ function cas_login_check() {
         // now save the user and become the new user.
         $acct = user_save(drupal_anonymous_user(), $user_default);
         if ($cas_authmap == CAS_AUTHMAP_EXTERNAL) {
-          user_set_authmaps($acct, array('authname_cas' => $cas_name));
+          db_insert('cas_user')
+            ->fields(array(
+              'uid' => $acct->uid,
+              'cas_name' => $cas_name,
+            ))
+            ->execute();
         }
         watchdog("user", 'new user: %n (CAS)', array('%n' => $acct->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$acct->uid"));
       }
@@ -352,6 +366,7 @@ function cas_login_check() {
       // tests?   
       //session_destroy();
       $user = drupal_anonymous_user();
+      drupal_set_message(t('No account found for %cas_name.', array('%cas_name' => $cas_name)));
     }
   }
   // End if user is already logged in else
@@ -415,6 +430,17 @@ function cas_menu() {
   
   
   return $items;
+}
+
+/**
+ * Implement hook_user_delete().
+ *
+ * When a CAS user is deleted, we need to clean up the entry in {cas_user}.
+ */
+function cas_user_delete($account) {
+  db_delete('cas_user')
+    ->condition('uid', $account->uid)
+    ->execute();
 }
 
 /**
@@ -896,9 +922,7 @@ function cas_current_user() {
  */
 function cas_is_external_user() {
   if (variable_get('cas_authmap', CAS_AUTHMAP_EXTERNAL) == CAS_AUTHMAP_EXTERNAL) {
-     $authname = cas_current_user();
-     $map = user_get_authmaps($authname);
-     return isset($map['cas']);
+     return cas_current_user() !== FALSE;
   }
   else {
     return TRUE;  
@@ -932,7 +956,7 @@ function _cas_single_sign_out_save_ticket() {
 
 function _cas_external_user_is_blocked($name) {
   $deny=FALSE; 
-  $result = db_query("SELECT u.name FROM {users} u JOIN {authmap} m ON u.uid=m.uid WHERE status = 0 AND m.authname = LOWER(:uid)", array(':uid' => $name)); 
+  $result = db_query("SELECT u.name FROM {users} u JOIN {cas_user} c ON u.uid=c.uid WHERE status = 0 AND c.cas_name = LOWER(:uid)", array(':uid' => $name)); 
   foreach ($result as $record)  {
     if ($record->name) $deny = TRUE;  
   }

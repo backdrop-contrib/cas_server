@@ -32,6 +32,41 @@ function cas_schema() {
     'primary key' => array('cas_session_id'),
   );
 
+  $schema['cas_user'] = array(
+    'description' => 'Stores CAS authentication mapping.',
+    'fields' => array(
+      'aid' => array(
+        'description' => 'Primary Key: Unique authmap ID.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => "User's {users}.uid.",
+      ),
+      'authname' => array(
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Unique authentication name.',
+      ),
+    ),
+    'unique keys' => array(
+      'authname' => array('authname'),
+    ),
+    'primary key' => array('aid'),
+    'foreign keys' => array(
+      'user' => array(
+        'table' => 'users',
+        'columns' => array('uid' => 'uid'),
+      ),
+    ),
+  );
+
   return $schema;
 }
 
@@ -61,7 +96,64 @@ function cas_update_1() {
     'primary key' => array('cas_session_id'),
   );
 
-  $ret = array();
-  db_create_table($ret, 'cas_login_data', $schema['cas_login_data']);
-  return $ret;
+  db_create_table('cas_login_data', $schema['cas_login_data']);
+}
+
+/**
+ * Migrate authmap entries to new {cas_user} table.
+ */
+function cas_update_6301() {
+  $schema = array();
+
+  $schema['cas_user'] = array(
+    'description' => 'Stores CAS authentication mapping.',
+    'fields' => array(
+      'aid' => array(
+        'description' => 'Primary Key: Unique CAS authentication mapping ID.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'uid' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => "User's {users}.uid.",
+      ),
+      'cas_name' => array(
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Unique CAS username.',
+      ),
+    ),
+    'unique keys' => array(
+      'authname' => array('cas_name'),
+    ),
+    'primary key' => array('aid'),
+    'foreign keys' => array(
+      'user' => array(
+        'table' => 'users',
+        'columns' => array('uid' => 'uid'),
+      ),
+    ),
+  );
+
+  // Create {cas_user} table.
+  db_create_table('cas_user', $schema['cas_user']);
+
+  // Migrate entries from {authmap} to {cas_user}.
+  $query = db_select('authmap', 'a')
+    ->condition('module', 'cas');
+  $query->addField('a', 'uid');
+  $query->addField('a', 'authname', 'cas_name');
+  db_insert('cas_user')
+    ->from($query)
+    ->execute();
+
+  // Remove old entries in {authmap}.
+  db_delete('authmap')
+    ->condition('module', 'cas')
+    ->execute();
 }
