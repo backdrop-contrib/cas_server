@@ -182,18 +182,15 @@ function cas_login_check() {
     // force CAS authentication
     // Determine if CA option is set.  This is only avialable in version 0.6 or greater, so we need to test
     // to make sure its callable.
-    if (is_callable(array('phpCAS', 'setNoCasServerValidation'))) {
-      switch ($cas_cert_verify) {
-        case CAS_NO_VERIFY:
-          phpCAS::setNoCasServerValidation();
-          break;
-        
-        case CAS_CA_VERIFY:
-          phpCAS::setCasServerCACert($cas_cert);
-          break;
-      }
+    switch ($cas_cert_verify) {
+      case CAS_NO_VERIFY:
+        phpCAS::setNoCasServerValidation();
+        break;
+      case CAS_CA_VERIFY:
+        phpCAS::setCasServerCACert($cas_cert);
+        break;
     } 
-    
+
     // We're going to try phpCAS auth test
     if (!$cas_force_login) {
       $logged_in = phpCAS::checkAuthentication(); 
@@ -205,15 +202,7 @@ function cas_login_check() {
       
     } 
     else { 
-      // using function check for backward compatibility of the cas libraries.
-      // Newer versions of the cas client use authenticateIfNeeded,
-      // but older versions use forceAuthentication
-      if (is_callable(array('phpCAS', 'authenticateIfNeeded'))) {
-        phpCAS::authenticateIfNeeded();
-      }
-      else {
-        phpCAS::forceAuthentication();
-      }
+      phpCAS::forceAuthentication();
     }
     
     $cas_name = phpCAS::getUser();
