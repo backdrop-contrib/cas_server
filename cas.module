@@ -1,5 +1,4 @@
 <?php
-// $Id$
 
 /**
  * @file Enables users to authenticate via a Central Authentication Service (CAS)

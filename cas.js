@@ -1,4 +1,3 @@
-// $Id$
 (function ($) {
 Drupal.behaviors.cas = {
   attach: function (context) {
