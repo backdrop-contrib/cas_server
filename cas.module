@@ -19,55 +19,6 @@ define('CAS_EXCLUDE', 'services/*');
 define('CAS_AUTHMAP_EXTERNAL', 0);  // Use external authmap entries for cas
 define('CAS_AUTHMAP_INTERNAL', 1);  // Use drupal as the internal user.
 
-
-/**
- * Invokes hook_auth_transform() in every module.
- *
- * Other modules may need to transform the results of phpCAS::getUser() into a Drupal username
- * (i.e. phpCAS::getUser() is not guaranteed to return the same username that the user typed in
- *       or the Drupal username might be username@cas or something and we need to know it before we filter)
- *
- * We cannot use hook_insert or any user hooks, because they fire way too late.
- * We cannot use module_invoke_all(), because the argument needs to be passed by reference.
- *
- * @param $cas_user
- *   The cas reply string to transform into a drupal username
- */
-function cas_invoke_auth_transform(&$cas_name) {
-  foreach (module_implements('auth_transform') as $module) {
-    $function = $module . '_auth_transform';
-    if (function_exists($function)) {
-      $function('cas', $cas_name);
-    }
-  }
-}
-
-/**
- * Invokes hook_auth_filter() in every module.
- *
- * We cannot use module_invoke_all() for this,
- * because we want to break out as soon as one fails.
- *
- * @param $cas_user
- *   The transformed $cas_name to filter
- *
- * @return
- *   TRUE if no module implementing this hook denied access
- *   FALSE if any module returned FALSE
- */
-function cas_invoke_auth_filter($cas_name) {
-  foreach (module_implements('auth_filter') as $module) {
-    $function = $module . '_auth_filter';
-    if (function_exists($function)) {
-
-      if (($return = $function('cas', $cas_name)) === FALSE) {
-        return FALSE;
-      }
-    }
-  }
-  return TRUE;
-}
-
 /**
  * Implements hook_init().
  *
@@ -142,7 +93,6 @@ function cas_login_check() {
     }
 
     // Variable set
-    $cas_user_register = variable_get('cas_user_register', 1);
     $cas_authmap       = variable_get('cas_authmap', CAS_AUTHMAP_EXTERNAL);
     $server_version    = (string)variable_get('cas_version', '2.0');
     $server_cas_server = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
@@ -179,6 +129,10 @@ function cas_login_check() {
         break;
     }
 
+    // Allow other modules to call phpCAS routines. We do not call
+    // drupal_alter() since there are no parameters to pass.
+    module_invoke_all('cas_phpcas_alter');
+
     // We're going to try phpCAS auth test
     if (!$cas_force_login) {
       $logged_in = phpCAS::checkAuthentication();
@@ -186,55 +140,58 @@ function cas_login_check() {
       setcookie('cas_login_checked', 'true');
 
       // We're done cause we're not logged in.
-      if (!$logged_in) return;
-
+      if (!$logged_in) {
+        return;
+      }
     }
     else {
       phpCAS::forceAuthentication();
     }
 
-    $cas_name = phpCAS::getUser();
+    // Build the cas_user object and allow modules to alter it.
+    $cas_user = array(
+      'name' => phpCAS::getUser(),
+      'login' => TRUE,
+      'register' => variable_get('cas_user_register', TRUE),
+    );
+    drupal_alter('cas_user', $cas_user);
 
-    /*
-     * Invoke hook_auth_transform($op, &$username)
-     *
-     * Allow other modules to change the login name
-     * eg. if phpCAS::getUser() returns a string like it:johndoe:10.10.1.2:200805064255
-     * eg. if your cas users in Drupal need to be johndoe@cas
-     *
-     * Note: this transformation needs to happen before we check for blocked users.
-     */
-    cas_invoke_auth_transform($cas_name);
-
-    /*
-     * Invoke hook_auth_filter($op, &$username)
-     *
-     * Allow other modules to filter out some cas logins
-     * eg. if you want to use cas authentication but only allow SOME people in
-     * eg. if you want to filter out people without LDAP home directories
-     */
-    if (cas_invoke_auth_filter($cas_name) === FALSE) {
-      drupal_set_message(t('The user account %name is not available on this site.', array('%name' => $cas_name)), 'error');
+    // Bail out if a module denied login access for this user or unset the user
+    // name.
+    if (empty($cas_user['login']) || empty($cas_user['name'])) {
+      // Only set a warning if we forced login.
+      if ($cas_force_login) {
+        drupal_set_message(t('The user account %name is not available on this site.', array('%name' => $cas_name)), 'error');
+      }
       return;
     }
+
+    // Proceed with the login process, using the altered CAS username.
+    $cas_name = $cas_user['name'];
 
     // blocked user check
-
+    $blocked = FALSE;
     if (($cas_authmap == CAS_AUTHMAP_INTERNAL) && user_is_blocked($cas_name)) {
       // blocked in user administration
-      drupal_set_message(t('The username %name has been blocked.', array('%name' => $cas_name)), 'error');
-      return;
+      $blocked = 'The username %cas_name has been blocked.';
     }
     // this is because users can change their name.
-    if (($cas_authmap == CAS_AUTHMAP_EXTERNAL) && _cas_external_user_is_blocked($cas_name)) {
-      // blocked in user administration
-      drupal_set_message(t('The username %name has been blocked.', array('%name' => $cas_name)), 'error');
-      return;
+    // users are external; use cas_user table for associating external users
+    elseif (($cas_authmap == CAS_AUTHMAP_EXTERNAL) && _cas_external_user_is_blocked($cas_name)) {
+        $blocked = 'The username %cas_name has been blocked.';
     }
+    // @todo The D7 equivalent here must have been renamed.
+    // elseif (drupal_is_denied('user', $cas_name)) {
+    //   // denied by access controls
+    //   return 'The name %cas_name is a reserved username.';
+    // }
 
-    if (drupal_is_denied('user', $cas_name)) {
-      // denied by access controls
-      drupal_set_message(t('The name %name is a reserved username.', array('%name' => $cas_name)), 'error');
+    if ($blocked) {
+      // Only display error messages only if the user intended to log in.
+      if ($cas_force_login) {
+        watchdog('cas', $blocked, array('%cas_name' => $cas_name), WATCHDOG_WARNING);
+        drupal_set_message(t($blocked, array('%cas_name' => $cas_name)), 'error');
+      }
       return;
     }
 
@@ -249,7 +206,7 @@ function cas_login_check() {
       if ($uid) {
         $account = user_load($uid);
       }
-      if (empty($account) && variable_get('cas_hijack_user', 0)) {
+      if (empty($account) && $cas_force_login && variable_get('cas_hijack_user', 0)) {
         $account = user_load_by_name($cas_name);
 
         if (isset($account->uid)) {
@@ -265,46 +222,47 @@ function cas_login_check() {
 
     // If we don't have a user register them.
     if (empty($account) || !$account->uid) {
-      if ($cas_user_register == 1) {
+      if ($cas_user['register']) {
         $account = cas_user_register($cas_name);
+        // Record that the user was just registered.
+        $edit = array('cas_first_login' => TRUE);
       }
     }
 
     // final check to make sure we have a good user
     if (!empty($account) && $account->uid > 0) {
+      // Save single sign out information
+      if (!empty($_SESSION['cas_ticket']) && variable_get('cas_signout', FALSE)) {
+        _cas_single_sign_out_save_token($account);
+      }
 
-    // Save single sign out information
-    if (!empty($_SESSION['cas_ticket']) && variable_get('cas_signout', FALSE)) {
-      _cas_single_sign_out_save_token($account);
-    }
+      // Populate $edit with some basic properties.
+      $edit['cas_user'] = $cas_user;
+      $edit['roles'] = $account->roles + cas_roles();
+      if (module_exists('persistent_login') && $_SESSION['cas_remember']) {
+        $edit['persistent_login'] = 1;
+      }
+      // Allow other modules to make their own custom changes.
+      cas_user_module_invoke('presave', $edit, $account);
 
-    // update the roles
-    $edit = array(
-      'roles' => $account->roles + cas_roles(),
-    );
-    $account = user_save($account, $edit);
+      // Save the user account and log the user in.
+      $user = user_save($account, $edit);
+      user_login_finalize($edit);
 
-    $edit = array();
-    if (module_exists('persistent_login') && $_SESSION['cas_remember']) {
-      $edit['persistent_login'] = 1;
-    }
-    $user = $account;
-    user_login_finalize($edit);
-    drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
-    if (!empty($edit['persistent_login'])) {
-      drupal_set_message(t('You will remain logged in on this computer even after you close your browser.'));
-    }
-    // We can't count on the menu because we're changing login states.
+      drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
+      if (!empty($edit['persistent_login'])) {
+        drupal_set_message(t('You will remain logged in on this computer even after you close your browser.'));
+      }
 
-    cas_login_page();
+      // We can't count on the menu because we're changing login states.
+      cas_login_page();
     }
-    // if we have a good user
     else {
-      // Not sure if we should be doing this.  Perhaps some kind of session start needs to be called prior to cas
-      // tests?
-      //session_destroy();
       $user = drupal_anonymous_user();
-      drupal_set_message(t('No account found for %cas_name.', array('%cas_name' => $cas_name)));
+      // Only display error messages only if the user intended to log in.
+      if ($cas_force_login) {
+        drupal_set_message(t('No account found for %cas_name.', array('%cas_name' => $cas_name)));
+      }
     }
   }
   // End if user is already logged in else
@@ -970,6 +928,19 @@ function _cas_single_sign_out_save_ticket() {
  */
 function _cas_external_user_is_blocked($cas_name) {
   return db_query("SELECT name FROM {users} u JOIN {cas_user} c ON u.uid = c.uid WHERE u.status = 0 AND c.cas_name = :cas_name", array(':cas_name' => $cas_name))->fetchField();
+}
+
+/**
+ * Invokes hook_cas_user_TYPE() in every module.
+ *
+ * We cannot use module_invoke() because the arguments need to be passed by
+ * reference.
+ */
+function cas_user_module_invoke($type, &$edit, $account) {
+  foreach (module_implements('cas_user_' . $type) as $module) {
+    $function = $module . '_cas_user_' . $type;
+    $function($edit, $account);
+  }
 }
 
 /**

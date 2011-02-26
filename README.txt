@@ -31,3 +31,9 @@ Installation
   Depending on where and how you installed the phpCAS library, you may need
   to configure the path to CAS.php. The current library version will be
   displayed if the library is found.
+
+
+API Changes Since 6.x-2.x
+=========================
+The hooks hook_auth_name() and hook_auth_filter() were combined and renamed
+to hook_cas_user_alter(). See cas.api.php.
