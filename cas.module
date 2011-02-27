@@ -306,6 +306,28 @@ function cas_menu() {
     'type' => MENU_NORMAL_ITEM,
     'file' => 'cas.admin.inc',
   );
+  $items['admin/config/people/cas/settings'] = array(
+    'title' => 'CAS',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+  $items['user/%user/cas'] = array(
+    'title' => 'CAS',
+    'page callback' => 'cas_user_identities',
+    'page arguments' => array(1),
+    'access arguments' => array('administer users'),
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'cas.pages.inc',
+    'tab_parent' => 'user/%/edit',
+    'weight' => 1,
+  );
+  $items['user/%user/cas/delete'] = array(
+    'title' => 'Delete CAS username',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('cas_user_delete_form', 1),
+    'access arguments' => array('administer users'),
+    'file' => 'cas.pages.inc',
+  );
   $items['cas'] = array(
     'path' => 'cas',
     'title' => 'CAS Login',
