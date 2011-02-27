@@ -898,8 +898,18 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
       }
       break;
 
-    case 'user_register':
-      if (!user_access('administer users') && variable_get('cas_registerURL', '') != '') {
+    case 'user_register_form':
+      if (user_access('administer users')) {
+        $form['account']['cas_name'] = array(
+          '#type' => 'textfield',
+          '#title' => t('CAS username'),
+          '#default_value' => '',
+          '#description' => t('If necessary, additional CAS usernames can be added after the account is created.'),
+          '#element_validate' => array('_cas_user_register_cas_name_element_validate'),
+          '#weight' => -9,
+        );
+      }
+      elseif (variable_get('cas_registerURL', '') != '') {
         drupal_goto(variable_get('cas_registerURL', ''));
       }
       break;
@@ -916,6 +926,17 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
         $row['cas'] = theme('item_list', array('items' => $cas_usernames));
       }
       break;
+  }
+}
+
+/**
+ * Form element 'cas_name' validator on user_register_form().
+ */
+function _cas_user_register_cas_name_element_validate($element, &$form_state) {
+  if (!empty($element['#value'])) {
+    if (db_query("SELECT cas_name FROM {cas_user} WHERE cas_name = :cas_name", array(':cas_name' => $element['#value']))->fetchField()) {
+      form_set_error('cas_name', t('The CAS username is already in use on this site.'));
+    }
   }
 }
 
