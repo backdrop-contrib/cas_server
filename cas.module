@@ -323,6 +323,73 @@ function cas_menu() {
 }
 
 /**
+ * Implements hook_user_operations().
+ */
+function cas_user_operations($form = array(), $form_state = array()) {
+  $operations['cas_create'] = array(
+    'label' => t('Create CAS username'),
+    'callback' => 'cas_user_operations_create_username',
+  );
+  $operations['cas_remove'] = array(
+    'label' => t('Remove CAS usernames'),
+    'callback' => 'cas_user_operations_remove_usernames',
+  );
+  return $operations;
+}
+
+/**
+ * Callback function to assign a CAS username to the account.
+ *
+ * @param $uids
+ *   An array of user ids. For each account, a CAS username is created with
+ *   the same name as the Drupal username.
+ *
+ * @see cas_user_operations().
+ */
+function cas_user_operations_create_username($uids) {
+  $accounts = user_load_multiple($uids);
+  foreach ($accounts as $account) {
+    $count = db_select('cas_user', 'c')
+      ->condition('cas_name', $account->name)
+      ->condition('uid', $account->uid, '<>')
+      ->countQuery()->execute()->fetchfield();
+    if ($count) {
+      drupal_set_message(t('CAS username %username already in use.', array('%username' => $account->name)), 'error');
+      continue;
+    }
+    db_merge('cas_user')
+      ->key(array('cas_name' => $account->name))
+      ->fields(array('uid' => $account->uid))
+      ->execute();
+  }
+}
+
+/**
+ * Callback function to remove CAS usernames from the account.
+ *
+ * @param $uids
+ *   An array of user ids. For each account, all CAS usernames are removed.
+ *
+ * @see cas_user_operations().
+ */
+function cas_user_operations_remove_usernames($uids) {
+  db_delete('cas_user')
+    ->condition('uid', $uids, 'IN')
+    ->execute();
+}
+
+/**
+ * Implements hook_admin_paths().
+ */
+function cas_admin_paths() {
+  $paths = array(
+    'user/*/cas' => TRUE,
+    'user/*/cas/delete/*' => TRUE,
+  );
+  return $paths;
+}
+
+/**
  * Implements hook_user_load().
  *
  * Adds an associative array 'cas_names' to each user. The array keys are
@@ -814,6 +881,19 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
         drupal_goto(variable_get('cas_registerURL', ''));
       }
       break;
+
+    case 'user_admin_account':
+      // Insert the CAS username into the second column.
+      _cas_array_insert($form['accounts']['#header'], 1, array(
+        'cas' => array(
+          'data' => 'CAS usernames',
+        ),
+      ));
+      foreach ($form['accounts']['#options'] as $uid => &$row) {
+        $cas_usernames = db_query('SELECT cas_name FROM {cas_user} WHERE uid = :uid', array(':uid' => $uid))->fetchCol();
+        $row['cas'] = theme('item_list', array('items' => $cas_usernames));
+      }
+      break;
   }
 }
 
@@ -985,4 +1065,15 @@ function cas_user_register($cas_name) {
   watchdog("user", 'new user: %n (CAS)', array('%n' => $account->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$account->uid"));
 
   return $account;
+}
+
+/**
+ * Insert an array into the specified position of another array.
+ *
+ * Preserves keys in associative arrays.
+ * @see http://www.php.net/manual/en/function.array-splice.php#56794
+ */
+function _cas_array_insert(&$array, $position, $insert_array) {
+  $first_array = array_splice($array, 0, $position);
+  $array = array_merge($first_array, $insert_array, $array);
 }
