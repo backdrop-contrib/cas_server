@@ -165,3 +165,39 @@ function cas_update_6301() {
     ->condition('module', 'cas')
     ->execute();
 }
+
+/**
+ * Remove 'hijack user' and 'Drupal is CAS user repository' options.
+ */
+function cas_update_6302() {
+  $message = NULL;
+  $t = get_t();
+
+  if (variable_get('cas_authmap', 0) || variable_get('cas_hijack_user', 0)) {
+    // Create a mapping in {cas_user} for each current Drupal user.
+    // The code below generates SQL equivalent to:
+    //   INSERT INTO cas_user (uid, cas_name)
+    //   SELECT u.uid AS uid, u.name as cas_name
+    //   FROM users u
+    //   WHERE uid <> 0 AND NOT EXISTS (SELECT cas_name FROM cas_user c WHERE c.cas_name = u.name);
+
+    $query = db_select('users', 'u');
+    $query->addField('u', 'uid', 'uid');
+    $query->addField('u', 'name', 'cas_name');
+    $query->condition('uid', 0, '<>');
+    $query->notExists(
+      db_select('cas_user', 'c')
+      ->fields('c', array('cas_name'))
+      ->where('c.cas_name = u.name')
+    );
+    db_insert('cas_user')
+      ->from($query)
+      ->execute();
+
+    $message = $t('Users have been automatically assigned their CAS username. For more information, see "Associating CAS usernames with Drupal users" in the CAS module README.txt.');
+  }
+
+  variable_del('cas_authmap');
+  variable_del('cas_hijack_user');
+  return $message;
+}

@@ -16,8 +16,6 @@ define('CAS_LOGIN_INVITE_DEFAULT', 'Log in via single sign-on (CAS)');
 define('CAS_LOGIN_DRUPAL_INVITE_DEFAULT', 'Log in locally (no single sign-on)');
 define('CAS_LOGIN_REDIR_MESSAGE', 'You will be redirected to the secure cas login page');
 define('CAS_EXCLUDE', 'services/*');
-define('CAS_AUTHMAP_EXTERNAL', 0);  // Use external authmap entries for cas
-define('CAS_AUTHMAP_INTERNAL', 1);  // Use drupal as the internal user.
 
 /**
  * Implements hook_init().
@@ -93,7 +91,6 @@ function cas_login_check() {
     }
 
     // Variable set
-    $cas_authmap       = variable_get('cas_authmap', CAS_AUTHMAP_EXTERNAL);
     $server_version    = (string)variable_get('cas_version', '2.0');
     $server_cas_server = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
     $server_port       = (int)variable_get('cas_port', '443');
@@ -171,13 +168,7 @@ function cas_login_check() {
 
     // blocked user check
     $blocked = FALSE;
-    if (($cas_authmap == CAS_AUTHMAP_INTERNAL) && user_is_blocked($cas_name)) {
-      // blocked in user administration
-      $blocked = 'The username %cas_name has been blocked.';
-    }
-    // this is because users can change their name.
-    // users are external; use cas_user table for associating external users
-    elseif (($cas_authmap == CAS_AUTHMAP_EXTERNAL) && _cas_external_user_is_blocked($cas_name)) {
+    if (_cas_external_user_is_blocked($cas_name)) {
         $blocked = 'The username %cas_name has been blocked.';
     }
     // @todo The D7 equivalent here must have been renamed.
@@ -195,29 +186,10 @@ function cas_login_check() {
       return;
     }
 
-    // try to log into Drupal
-    if ($cas_authmap == CAS_AUTHMAP_INTERNAL) {
-      // users are coming from Drupal; no need to use the external_load and the authmap
-      $account = user_load_by_name($cas_name);
-    }
-    else {
-      // users are external; use authmap table for associating external users
-      $uid = db_query("SELECT uid FROM {cas_user} WHERE cas_name = :cas_name", array(':cas_name' => $cas_name))->fetchField();
-      if ($uid) {
-        $account = user_load($uid);
-      }
-      if (empty($account) && $cas_force_login && variable_get('cas_hijack_user', 0)) {
-        $account = user_load_by_name($cas_name);
-
-        if (isset($account->uid)) {
-          db_insert('cas_user')
-            ->fields(array(
-              'uid' => $account->uid,
-              'cas_name' => $cas_name,
-            ))
-            ->execute();
-        }
-      }
+    // users are external; use {cas_user} table for associating external users
+    $uid = db_query("SELECT uid FROM {cas_user} WHERE cas_name = :cas_name", array(':cas_name' => $cas_name))->fetchField();
+    if ($uid) {
+      $account = user_load($uid);
     }
 
     // If we don't have a user register them.

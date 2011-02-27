@@ -143,20 +143,6 @@ function cas_admin_settings() {
     '#collapsed' => TRUE,
   );
 
-  $form['account']['cas_authmap'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Is Drupal also the CAS user repository?'),
-    '#default_value' => variable_get('cas_authmap', CAS_AUTHMAP_EXTERNAL),
-    '#description' => t('In most cases, the answer will be no, But in some cases, the Drupal user database could be used as the central user store for single sign-on. If this is the case, select this option.'),
-  );
-
-  $form['account']['cas_hijack_user'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('If Drupal is not the user repository, should cas highjack users with the same name?'),
-    '#default_value' => variable_get('cas_hijack_user', 0),
-    '#description' => t('If you have pre-created regular accounts in cas that you want converted to mapped accounts, check this box.  Otherwise CAS will likely throw duplicate key violation errors on new users.'),
-  );
-
   $form['account']['cas_user_register'] = array(
     '#type' => 'checkbox',
     '#title' => t('Should Drupal user accounts be automatically created?'),
