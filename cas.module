@@ -867,30 +867,48 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
       }
       break;
 
-
     case 'user_profile_form':
-      //make the email field hidden and force the value to the default.
-      if (variable_get('cas_hide_email', 0) && cas_is_external_user()) {
-        if (variable_get('cas_domain', '')) {
-          $form['account']['mail']['#type'] = 'hidden';
-          $form['account']['mail']['#value'] = $form['account']['mail']['#default_value'];
-          if (!$form['account']['mail']['#default_value']) {
-            $form['account']['mail']['#value'] = $form['account']['name']['#default_value'] . '@' . variable_get('cas_domain', '');
-          }
+      $account = $form['#user'];
+      if (user_access('administer users')) {
+        // The user is an administrator, so add fields to allow changing the
+        // CAS username(s) associated with the account.
+        if (count($account->cas_names) <= 1) {
+          $form['account']['cas_name'] = array(
+            '#type' => 'textfield',
+            '#title' => t('CAS username'),
+            '#default_value' => $account->cas_names,
+            '#description' => t('<a href="@url">Create, edit or delete</a> additional CAS usernames associated with this account.', array('@url' => url('user/' . $account->uid . '/cas'))),
+            '#element_validate' => array('_cas_user_profile_cas_name_element_validate'),
+            '#weight' => -9,
+          );
+          // array_unshift($form['#submit'], '_cas_user_profile_form_submit');
+        }
+        else {
+          $form['account']['cas_name'] = array(
+            '#type' => 'item',
+            '#title' => t('CAS usernames'),
+            '#description' => t('<a href="@url">Create, edit or delete</a> CAS usernames associated with this account.', array('@url' => url('user/' . $account->uid . '/cas'))),
+            '#markup' => t('%cas_names.', array('%cas_names' => implode(', ', $account->cas_names))),
+            '#weight' => -9,
+          );
         }
       }
+      elseif (cas_is_external_user($account)) {
+        // The user is not an administrator, so selectively remove the e-mail
+        // and password fields.
+        if (variable_get('cas_hide_email', 0)) {
+          unset($form['account']['mail']);
+        }
+        if (variable_get('cas_hide_password', 0)) {
+          unset($form['account']['pass']);
 
-      //Remove the password fields from the form.
-      if (variable_get('cas_hide_password', 0) && cas_is_external_user()) {
-        unset($form['account']['pass']);
-
-        // Also remove requirement to validate your current password before
-        // changing your e-mail address.
-        unset($form['account']['current_pass']);
-        unset($form['account']['current_pass_required_values']);
-        $form['#validate'] = array_diff($form['#validate'], array('user_validate_current_pass'));
+          // Also remove requirement to validate your current password before
+          // changing your e-mail address.
+          unset($form['account']['current_pass']);
+          unset($form['account']['current_pass_required_values']);
+          $form['#validate'] = array_diff($form['#validate'], array('user_validate_current_pass'));
+        }
       }
-
       break;
 
     case 'user_pass':
@@ -927,6 +945,17 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
         $row['cas'] = theme('item_list', array('items' => $cas_usernames));
       }
       break;
+  }
+}
+
+/**
+ * Form element 'cas_name' validator on user_profile_form().
+ */
+function _cas_user_profile_cas_name_element_validate($element, &$form_state) {
+  if (!empty($element['#value'])) {
+    if (db_query("SELECT cas_name FROM {cas_user} WHERE cas_name = :cas_name AND uid <> :uid", (array(':cas_name' => $element['#value'], ':uid' => $form_state['build_info']['args'][0]->uid)))->fetchField()) {
+      form_set_error('cas_name', t('The CAS username is already in use on this site.'));
+    }
   }
 }
 
