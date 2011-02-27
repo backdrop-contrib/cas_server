@@ -254,7 +254,8 @@ function cas_login_check() {
         drupal_set_message(t('You will remain logged in on this computer even after you close your browser.'));
       }
 
-      // We can't count on the menu because we're changing login states.
+      // Save the altered CAS name for future use.
+      $_SESSION['cas_name'] = $cas_name;
       cas_login_page();
     }
     else {
@@ -992,27 +993,29 @@ function _cas_single_sign_out_check() {
 }
 
 /**
- * Return the current cas user based on sessioin variables
- *
+ * Return the current CAS username.
  */
 function cas_current_user() {
-  return isset($_SESSION['phpCAS']['user']) ? $_SESSION['phpCAS']['user'] : FALSE;
+  return isset($_SESSION['cas_name']) ? $_SESSION['cas_name'] : FALSE;
 }
 
 /**
- * Determine whether the current user is an "external" cas user.
+ * Determine whether the specified user is an "external" CAS user.
  * When settings are set to use drupal as the user repository, then this
  * function will always return true.
  *
- * @return unknown
+ * @param $account
+ *   The user object for the user to query. If omitted, the current user is
+ *   used.
+ *
+ * @return
+ *   TRUE if the user is logged in via CAS.
  */
-function cas_is_external_user() {
-  if (variable_get('cas_authmap', CAS_AUTHMAP_EXTERNAL) == CAS_AUTHMAP_EXTERNAL) {
-    return cas_current_user() !== FALSE;
+function cas_is_external_user($account = NULL) {
+  if (!isset($account)) {
+    $account = $GLOBALS['user'];
   }
-  else {
-    return TRUE;
-  }
+  return in_array(cas_current_user(), $account->cas_names);
 }
 
 
