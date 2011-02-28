@@ -312,6 +312,16 @@ function cas_menu() {
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => -10,
   );
+  $items['admin/people/cas/create'] = array(
+    'title' => 'Add CAS user',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('cas_add_user_form'),
+    'access arguments' => array('administer users'),
+    'type' => MENU_LOCAL_ACTION,
+    'file' => 'cas.user.inc',
+    'tab_parent' => 'admin/people',
+    'weight' => 1,
+  );
   $items['user/%user/cas'] = array(
     'title' => 'CAS',
     'page callback' => 'cas_user_identities',
