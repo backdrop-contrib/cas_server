@@ -148,16 +148,8 @@ function cas_login_check() {
     $server_cas_server = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
     $server_port       = (int)variable_get('cas_port', '443');
     $server_uri        = (string)variable_get('cas_uri', '');
-    $cas_domain        = (string)variable_get('cas_domain', '');
     $cas_cert_verify   = (string)variable_get('cas_cert_verify', CAS_NO_VERIFY);
     $cas_cert          = (string)variable_get('cas_cert', '');
-    $all_roles         = user_roles();
-    $cas_roles         = array();
-    foreach ($all_roles as $key => $value) {
-      if (array_key_exists($key, variable_get('cas_auto_assigned_role', array(DRUPAL_AUTHENTICATED_RID)))) {
-        $cas_roles[$key] = $key;
-      }
-    }
     if ( ($debugFile = variable_get("cas_debugfile", "")) != "" ) {
       phpCAS::setDebug($debugFile);
     }
@@ -275,30 +267,7 @@ function cas_login_check() {
     // If we don't have a user register them.
     if (empty($acct) || !$acct->uid ) {
       if ($cas_user_register == 1) {
-        $user_default = array(
-          "name" => $cas_name,
-          "pass" => user_password(),
-          "init" => $cas_name,
-          "mail" => '',
-          "status" => 1,
-          "roles" => $cas_roles,
-        );
-        if ($cas_domain) $user_default['mail'] = $cas_name . '@' . $cas_domain;
-
-        // Set a session variable to denote this the initial login
-        $_SESSION['cas_first_login'] = TRUE;
-
-        // now save the user and become the new user.
-        $acct = user_save(drupal_anonymous_user(), $user_default);
-        if ($cas_authmap == CAS_AUTHMAP_EXTERNAL) {
-          db_insert('cas_user')
-            ->fields(array(
-              'uid' => $acct->uid,
-              'cas_name' => $cas_name,
-            ))
-            ->execute();
-        }
-        watchdog("user", 'new user: %n (CAS)', array('%n' => $acct->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$acct->uid"));
+        $acct = cas_user_register($cas_name);
       }
     }
 
@@ -310,16 +279,11 @@ function cas_login_check() {
       _cas_single_sign_out_save_token($acct);
     }
 
-    // update the roles and reset the password
-    $roles = $acct->roles;
-    foreach ($cas_roles as $role) {
-      $roles[$role] = $role;
-    }
-    /* Removing password cause it cases problems with phpcas. */
-    $user_up = array(
-      "roles" => $roles,
+    // update the roles
+    $edit = array(
+      'roles' => $acct->roles + cas_roles(),
     );
-    $acct = user_save($acct, $user_up);
+    $acct = user_save($acct, $edit);
 
     $edit = array();
     if (module_exists('persistent_login') && $_SESSION['cas_remember']) {
@@ -385,7 +349,6 @@ function cas_menu() {
     'type' => MENU_NORMAL_ITEM,
     'file' => 'cas.admin.inc',
   );
-
   $items['cas'] = array(
     'path' => 'cas',
     'title' => 'CAS Login',
@@ -400,6 +363,82 @@ function cas_menu() {
     'type' => MENU_SUGGESTED_ITEM,
   );
   return $items;
+}
+
+/**
+ * Implements hook_user_load().
+ *
+ * Adds an associative array 'cas_names' to each user. The array keys are
+ * unique authentication mapping ids, with CAS usernames as the values.
+ */
+function cas_user_load($users) {
+  foreach (array_keys($users) as $uid) {
+    $users[$uid]->cas_names = array();
+  }
+  $result = db_query('SELECT aid, uid, cas_name FROM {cas_user} WHERE uid IN (:uids)', array(':uids' => array_keys($users)));
+  foreach ($result as $record) {
+    $users[$record->uid]->cas_names[$record->aid] = $record->cas_name;
+  }
+}
+
+/**
+ * Implements hook_user_insert().
+ *
+ * When a user is created, record their CAS username if provided.
+ */
+function cas_user_insert(&$edit, $account, $category) {
+  if (!empty($edit['cas_name'])) {
+    db_insert('cas_user')
+      ->fields(array(
+        'cas_name' => $edit['cas_name'],
+        'uid' => $account->uid,
+      ))
+      ->execute();
+  }
+}
+
+/**
+ * Implements hook_user_update().
+ *
+ * When a user is updated, change their CAS username if provided.
+ */
+function cas_user_update(&$edit, $account, $category) {
+  if (!array_key_exists('cas_name', $edit)) {
+    // If the cas_name key is not provided, there is nothing to do.
+    return;
+  }
+  $cas_name = $edit['cas_name'];
+
+  // See if the user currently has any CAS names.
+  $count = count($account->cas_names);
+  if ($count == 0) {
+    if (!empty($cas_name)) {
+      // Add a CAS username.
+      db_insert('cas_user')
+        ->fields(array(
+          'uid' => $account->uid,
+          'cas_name' => $cas_name,
+        ))
+        ->execute();
+    }
+  }
+  elseif ($count == 1) {
+    list($aid) = array_keys($account->cas_names);
+    if (empty($cas_name)) {
+      // Remove a CAS username.
+      db_delete('cas_user')
+        ->condition('uid', $account->uid)
+        ->condition('aid', $aid)
+        ->execute();
+    }
+    else {
+      // Change a CAS username.
+      db_merge('cas_user')
+        ->fields(array('cas_name' => $cas_name))
+        ->key(array('aid' => $aid))
+        ->execute();
+    }
+  }
 }
 
 /**
@@ -921,12 +960,59 @@ function _cas_single_sign_out_save_ticket() {
   }
 }
 
-function _cas_external_user_is_blocked($name) {
-  $deny=FALSE;
-  $result = db_query("SELECT u.name FROM {users} u JOIN {cas_user} c ON u.uid=c.uid WHERE status = 0 AND c.cas_name = LOWER(:uid)", array(':uid' => $name));
-  foreach ($result as $record)  {
-    if ($record->name) $deny = TRUE;
-  }
-  return $deny;
+/**
+ * Determine whether a CAS user is blocked.
+ *
+ * @param $cas_name
+ *   The CAS username.
+ *
+ * @return
+ *   Boolean TRUE if the user is blocked, FALSE if the user is active.
+ */
+function _cas_external_user_is_blocked($cas_name) {
+  return db_query("SELECT name FROM {users} u JOIN {cas_user} c ON u.uid = c.uid WHERE u.status = 0 AND c.cas_name = :cas_name", array(':cas_name' => $cas_name))->fetchField();
 }
 
+/**
+ * Roles which should be granted to all CAS users.
+ *
+ * @return
+ *   An associative array with the role id as the key and the role name as value.
+ */
+function cas_roles() {
+  $cas_roles = &drupal_static(__FUNCTION__);
+  if (!isset($cas_roles)) {
+    $cas_roles = array_intersect_key(user_roles(), variable_get('cas_auto_assigned_role', array(DRUPAL_AUTHENTICATED_RID)));
+  }
+  return $cas_roles;
+}
+
+/**
+ * Register a CAS user with some default values.
+ *
+ * @param $cas_name
+ *   The name of the CAS user.
+ *
+ * @return
+ *   The user object of the created user.
+ */
+function cas_user_register($cas_name) {
+  $edit = array(
+    'name' => $cas_name,
+    'pass' => user_password(),
+    'init' => $cas_name,
+    'mail' => '',
+    'status' => 1,
+    'roles' => cas_roles(),
+    'cas_name' => $cas_name,
+  );
+  $cas_domain = (string) variable_get('cas_domain', '');
+  if ($cas_domain) {
+    $edit['mail'] = $cas_name . '@' . $cas_domain;
+  }
+  // now save the user and become the new user.
+  $account = user_save(drupal_anonymous_user(), $edit);
+  watchdog("user", 'new user: %n (CAS)', array('%n' => $account->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$account->uid"));
+
+  return $account;
+}
