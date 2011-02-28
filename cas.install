@@ -6,7 +6,7 @@
  */
 
 /**
- * Implementation of hook_schema().
+ * Implements hook_schema().
  */
 function cas_schema() {
   $schema = array();
@@ -70,7 +70,7 @@ function cas_schema() {
 }
 
 /**
- * Implementation of hook_update_N().
+ * Creates CAS login data table for Single-Sign-Out.
  */
 function cas_update_1() {
   $schema = array();
@@ -96,6 +96,15 @@ function cas_update_1() {
   );
 
   db_create_table('cas_login_data', $schema['cas_login_data']);
+}
+
+/**
+ * Depreciate "Verify the server using PEM cerificate" option.
+ */
+function cas_update_6300() {
+  if (variable_get('cas_cert_verify', 'none') == 'verify') {
+    variable_set('cas_cert_verify', 'none');
+  }
 }
 
 /**
@@ -155,13 +164,4 @@ function cas_update_6301() {
   db_delete('authmap')
     ->condition('module', 'cas')
     ->execute();
-}
-
-/**
- * Depreciate "Verify the server using PEM cerificate" option.
- */
-function cas_update_6300() {
-  if (variable_get('cas_cert_verify', 'none') == 'verify') {
-    variable_set('cas_cert_verify', 'none');
-  }
 }

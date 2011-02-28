@@ -1,5 +1,5 @@
-; $Id $
-name = cas
+name = CAS
+package = Central Authentication Service
 core = 7.x
 description = "Provides single sign-on Central Authentication Services (CAS)"
 configure = admin/config/people/cas

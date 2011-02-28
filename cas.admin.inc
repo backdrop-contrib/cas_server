@@ -9,17 +9,17 @@
  * Provides settings pages.
  */
 function cas_admin_settings() {
-  
+
   // Only displays path settings if Libraries API is not installed.
   if (!module_exists('libraries')) {
-    
+
     $form['library'] = array(
       '#type' => 'fieldset',
       '#title' => t('CAS library settings'),
       '#collapsible' => TRUE,
       '#after_build' => array('cas_library_version_check'),
     );
-    
+
     $form['library']['cas_library_dir'] = array(
       '#type' => 'textfield',
       '#title' => t('Library directory'),
@@ -35,7 +35,7 @@ function cas_admin_settings() {
     '#collapsible' => TRUE,
     '#collapsed' => FALSE,
   );
-  
+
   $form['server']['cas_version'] = array(
     '#type' => 'radios',
     '#title' => t('CAS version'),
@@ -46,7 +46,7 @@ function cas_admin_settings() {
       'S1' => t('SAML Version 1.1'),
     ),
   );
-  
+
   $form['server']['cas_server'] = array(
     '#type' => 'textfield',
     '#title' => t('CAS server'),
@@ -55,7 +55,7 @@ function cas_admin_settings() {
     '#maxlength' => 55,
     '#description' => t('Location of CAS authentication service.'),
   );
-  
+
   $form['server']['cas_port'] = array(
     '#type' => 'textfield',
     '#title' => t('CAS port'),
@@ -64,7 +64,7 @@ function cas_admin_settings() {
     '#maxlength' => 8,
     '#description' => t('443 is the standard ssl port. 8443 is the standard non-root port for Tomcat.'),
   );
-  
+
   $form['server']['cas_uri'] = array(
     '#type' => 'textfield',
     '#title' => t('CAS URI'),
@@ -72,14 +72,14 @@ function cas_admin_settings() {
     '#size' => 30,
     '#description' => t('If CAS is not at the root of the host, include a URI (e.g., /cas).'),
   );
-  
+
   $form['server']['cas_check_first'] = array(
     '#type' => 'checkbox',
     '#title' => t('Check with the CAS server to see if the user is already logged in?'),
     '#default_value' => variable_get('cas_check_first', 0),
     '#description' => t('This implements the <a href="@cas-gateway">Gateway feature</a> of the CAS Protocol. The check is only performed the first time a user visits your site, so that the local drupal logout is still useful for site admins.', array('@cas-gateway' => 'https://wiki.jasig.org/display/CAS/gateway')),
   );
-  
+
   $form['server']['cas_cert_verify'] = array(
     '#type' => 'radios',
     '#title' => t('CAS PEM certificate verification'),
@@ -89,7 +89,7 @@ function cas_admin_settings() {
       CAS_CA_VERIFY => t('Verify the Certificate Authority using PEM certificate'),
     ),
   );
-  
+
   $form['server']['cas_cert'] = array(
     '#type' => 'textfield',
     '#title' => t('CAS PEM Certificate (phpCAS 0.6 or greater)'),
@@ -97,21 +97,21 @@ function cas_admin_settings() {
     '#size' => 30,
     '#description' => t('With client version 0.6 or greater this is the certificate for validating cas or the cas CA as appropriate.'),
   );
-  
+
   $form['server']['cas_proxy'] = array(
     '#type' => 'checkbox',
     '#title' => t('Initialize CAS as proxy'),
     '#default_value' => variable_get('cas_proxy', 0),
     '#description' => t('When using a proxy it is required to set the option "Require CAS login for:" to "specific pages" with "node/*" as a specific page or "all pages except specific pages" on the "Redirection settings".')
   );
-      
+
   $form['server']['cas_pgtformat'] = array(
     '#type' => 'radios',
     '#title' => t('CAS PGT storage file format'),
     '#default_value' => variable_get('cas_pgtformat', 'plain'),
     '#options' => array('plain' => t('Plain Text'), 'xml' => t('XML')),
   );
-      
+
   $form['server']['cas_pgtpath'] = array(
     '#type' => 'textfield',
     '#title' => t('CAS PGT storage path'),
@@ -119,14 +119,14 @@ function cas_admin_settings() {
     '#size' => 30,
     '#description' => t("Only needed if 'Use CAS proxy initializer' is configured. Leave empty for default."),
   );
-  
+
   $form['server']['cas_signout'] = array(
     '#type' => 'checkbox',
     '#title' => t('Enable CAS Single Sign Out (CAS server 3.1 or greater)'),
     '#default_value' => variable_get('cas_signout', FALSE),
     '#description' => t('For more details see <a href="http://www.ja-sig.org/wiki/display/CASUM/Single+Sign+Out">http://www.ja-sig.org/wiki/display/CASUM/Single+Sign+Out</a>.'),
   );
-  
+
   $form['server']['cas_debugfile'] = array(
     '#type' => 'textfield',
     '#title' => t('CAS debugging output filename'),
@@ -134,36 +134,36 @@ function cas_admin_settings() {
     '#size' => 30,
     '#description' => t("Leave empty if you don't want debugging output."),
   );
-  
-  
+
+
   $form['account'] = array(
     '#type' => 'fieldset',
     '#title' => t('User account settings'),
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
   );
-  
+
   $form['account']['cas_authmap'] = array(
     '#type' => 'checkbox',
     '#title' => t('Is Drupal also the CAS user repository?'),
     '#default_value' => variable_get('cas_authmap', CAS_AUTHMAP_EXTERNAL),
     '#description' => t('In most cases, the answer will be no, But in some cases, the Drupal user database could be used as the central user store for single sign-on. If this is the case, select this option.'),
   );
-  
+
   $form['account']['cas_hijack_user'] = array(
     '#type' => 'checkbox',
     '#title' => t('If Drupal is not the user repository, should cas highjack users with the same name?'),
     '#default_value' => variable_get('cas_hijack_user', 0),
     '#description' => t('If you have pre-created regular accounts in cas that you want converted to mapped accounts, check this box.  Otherwise CAS will likely throw duplicate key violation errors on new users.'),
   );
-  
+
   $form['account']['cas_user_register'] = array(
     '#type' => 'checkbox',
     '#title' => t('Should Drupal user accounts be automatically created?'),
     '#default_value' => variable_get('cas_user_register', 1),
     '#description' => t('If a CAS user logs in, his Drupal account will automatically be created. If you don\'t check this option, you will have to pre-create accounts for the users you want to allow.'),
   );
-  
+
   $form['account']['cas_domain'] = array(
     '#type' => 'textfield',
     '#title' => t('Email Domain'),
@@ -172,21 +172,21 @@ function cas_admin_settings() {
     '#maxlength' => 55,
     '#description' => t('Append this domain name to each new user in order generate his email address.'),
   );
-  
+
   $form['account']['cas_hide_email'] = array(
     '#type' => 'checkbox',
     '#title' => t('Users cannot change email address'),
     '#default_value' => variable_get('cas_hide_email', 0),
     '#description' => t('Hide email address field on the edit user form.'),
   );
-  
+
   $form['account']['cas_hide_password'] = array(
     '#type' => 'checkbox',
     '#title' => t('Users cannot change password'),
     '#default_value' => variable_get('cas_hide_password', 0),
     '#description' => t('Hide password field on the edit user form. This also removes the requirement to enter your current password before changing your e-mail address.'),
   );
-  
+
   if (module_exists('persistent_login')) {
     $form['account']['cas_allow_rememberme'] = array(
       '#type' => 'checkbox',
@@ -195,7 +195,7 @@ function cas_admin_settings() {
       '#description' => t('If Persistent Login is enabled, users can choose to stay logged in between browser sessions'),
       );
   }
-  
+
   $form['account']['cas_auto_assigned_role'] = array(
     '#type' => 'select',
     '#title' => t('Auto-assign users to the role(s)'),
@@ -204,22 +204,22 @@ function cas_admin_settings() {
     '#multiple' => TRUE,
     '#description' => t('This value can be used to establish a role automatically for all CAS users.  As an example, if you are also using the simple_ldap module, you can use this role to establish a tie between CAS and LDAP-populated data.  i.e. Users with the role of \'cas:user\' should have their LDAP data updated automatically.'),
   );
-  
-  
+
+
   $form['pages'] = array(
     '#type' => 'fieldset',
     '#title' => t('Redirection settings'),
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
   );
-  
+
   $form['pages']['cas_access'] = array(
     '#type' => 'radios',
     '#title' => t('Require CAS login for'),
     '#default_value' => variable_get('cas_access', 0),
     '#options' => array(t('specific pages'), t('all pages except specific pages')),
   );
-  
+
   $form['pages']['cas_pages'] = array(
     '#type' => 'textarea',
     '#title' => t('Specific pages'),
@@ -228,7 +228,7 @@ function cas_admin_settings() {
     '#rows' => 5,
     '#description' => t("Enter one page per line as Drupal paths. The '*' character is a wildcard. Example paths are '<em>blog</em>' for the blog page and '<em>blog/*</em>' for every personal blog. '<em>&lt;front&gt;</em>' is the front page."),
   );
-  
+
   $form['pages']['cas_exclude'] = array(
     '#type' => 'textarea',
     '#title' => t('Excluded Pages'),
@@ -237,8 +237,8 @@ function cas_admin_settings() {
     '#rows' => 5,
     '#description' => t("Indicates which pages will be ignored (no login checks). Enter one page per line as Drupal paths. The '*' character is a wildcard. Example paths are '<em>blog</em>' for the blog page and '<em>blog/*</em>' for every personal blog. '<em>&lt;front&gt;</em>' is the front page."),
   );
-  
-  
+
+
   // Settings for redirection upon first login
   $form['pages']['cas_first_login'] = array(
     '#type' => 'checkbox',
@@ -246,7 +246,7 @@ function cas_admin_settings() {
     '#default_value' => variable_get('cas_first_login', 0),
     '#description' => t("Activate this option if you want a user to be directed to the following page after their first CAS login."),
   );
-  
+
   $form['pages']['cas_first_login_destination'] = array(
     '#type' => 'textfield',
     '#title' => t('Initial login landing page'),
@@ -255,7 +255,7 @@ function cas_admin_settings() {
     '#maxlength' => 255,
     '#description' => t("Drupal path or URL. An example path is '<em>blog</em>' for the blog page. '&lt;front&gt;' is the front page. An example URL is '<em>http://www.example.com</em>'."),
   );
-  
+
   // Setting for message displayed to user upon successfull login
   $form['pages']['cas_login_message'] = array(
     '#type' => 'textfield',
@@ -263,7 +263,7 @@ function cas_admin_settings() {
     '#default_value' => variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'),
     '#description' => t('The message displayed to a user when he successfully logs in via CAS. You may specify \'%cas_username\', the username of the user.'),
   );
-  
+
   // Setting for page to return to after a CAS logout
   $form['pages']['cas_logout_redirect'] = array(
     '#type' => 'checkbox',
@@ -271,7 +271,7 @@ function cas_admin_settings() {
     '#default_value' => variable_get('cas_logout_redirect', 0),
     '#description' => t("Activate this option if you want a user to be directed to the following page after logging out of CAS. The logout destination must be specified below."),
   );
-  
+
   $form['pages']['cas_logout_destination'] = array(
     '#type' => 'textfield',
     '#title' => t('Logout destination'),
@@ -280,29 +280,29 @@ function cas_admin_settings() {
     '#maxlength' => 255,
     '#description' => t("URL. An example URL is '<em>http://www.example.com</em>'. You can also use '&lt;front&gt;' for the front page."),
   );
-  
-  
+
+
   $form['misc'] = array(
     '#type' => 'fieldset',
     '#title' => t('Miscellaneous settings'),
     '#collapsible' => TRUE,
     '#collapsed' => TRUE,
   );
-  
+
   $form['misc']['cas_changePasswordURL'] = array(
     '#type' => 'textfield',
     '#title' => t('Change password URL'),
     '#default_value' => variable_get('cas_changePasswordURL', ''),
     '#description' => t('The URL users should use for changing their password.  Leave blank to use the standard Drupal page.'),
   );
-  
+
   $form['misc']['cas_registerURL'] = array(
     '#type' => 'textfield',
     '#title' => t('Registration URL'),
     '#default_value' => variable_get('cas_registerURL', ''),
     '#description' => t('The URL users should use for changing registering.  Leave blank to use the standard Drupal page.'),
   );
-    
+
   $form['login'] = array(
     '#type' => 'fieldset',
     '#title' => t('Login form settings'),
@@ -329,7 +329,7 @@ function cas_admin_settings() {
     '#description' => t('Message users will see to invite them to log in with cas credentials .'),
   );
 
-   $form['login']['cas_login_drupal_invite'] = array(
+  $form['login']['cas_login_drupal_invite'] = array(
     '#type' => 'textfield',
     '#title' => t('Drupal login invitation'),
     '#default_value' => variable_get('cas_login_drupal_invite', CAS_LOGIN_DRUPAL_INVITE_DEFAULT),
@@ -337,8 +337,8 @@ function cas_admin_settings() {
     '#maxlength' => 80,
     '#description' => t('Message users will see to invite them to log in with drupal credentials.'),
   );
- 
-   $form['login']['cas_login_redir_message'] = array(
+
+  $form['login']['cas_login_redir_message'] = array(
     '#type' => 'textfield',
     '#title' => t('Redirection notification message'),
     '#default_value' => variable_get('cas_login_redit_message', CAS_LOGIN_REDIR_MESSAGE),
@@ -378,23 +378,23 @@ function cas_library_version_get($dir, &$error = NULL) {
   if ($dir != '')
     $dir  = rtrim($dir, '/') . '/';
   $filename = $dir . 'CAS.php';
-  
-  // Make sure that the library exists. 
+
+  // Make sure that the library exists.
   if (_cas_include_exists($filename)) {
     require_once($filename);
   }
   else {
-    $error = t('The phpCAS library was not found at %path', array('%path' => $filename)); 
-    return FALSE;  
+    $error = t('The phpCAS library was not found at %path', array('%path' => $filename));
+    return FALSE;
   }
-  
+
   // Verify that the class exists
   if (!class_exists('phpCAS')) {
     $error = t('The <em>CAS.php</em> file was loaded, but the <em>phpCAS</em> class was not found.');
-    return FALSE; 
+    return FALSE;
   }
-  
-  // Retrieve the version 
+
+  // Retrieve the version
   if (!defined('PHPCAS_VERSION')) {
     $error = t('The phpCAS library was loaded, but the version could not be determined.');
   }
@@ -417,7 +417,7 @@ function cas_library_version_check($form_element, $form_state) {
   if ($version = cas_library_version_get($form_state['values']['cas_library_dir'], $error)) {
 
     $form_element['library']['cas_library_version'] = array(
-      '#type' => 'item', 
+      '#type' => 'item',
       '#title' => t('Library version'),
       '#markup' => '<pre>' . check_plain($version) . '</pre>',
       '#description' => t('The phpCAS library was loaded and returned this version information.'),

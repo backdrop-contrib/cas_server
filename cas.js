@@ -17,7 +17,7 @@ Drupal.behaviors.cas = {
 	    // Use .css("display", "block") instead of .show() to be Konqueror friendly.
 	    casElements.hide();
 	  }
-	
+
 	  $("li.cas-link", context)
 	    .click( function() {
 	       loginElements.hide();
@@ -41,4 +41,4 @@ Drupal.behaviors.cas = {
 	    });
 	  }
 	};
-})(jQuery); 
+})(jQuery);
