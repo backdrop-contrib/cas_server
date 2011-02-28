@@ -415,7 +415,6 @@ function cas_library_version_get($dir, &$error = NULL) {
  */
 function cas_library_version_check($form_element, $form_state) {
   if ($version = cas_library_version_get($form_state['values']['cas_library_dir'], $error)) {
-
     $form_element['library']['cas_library_version'] = array(
       '#type' => 'item',
       '#title' => t('Library version'),

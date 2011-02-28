@@ -241,21 +241,21 @@ function cas_login_check() {
     // try to log into Drupal
     if ($cas_authmap == CAS_AUTHMAP_INTERNAL) {
       // users are coming from Drupal; no need to use the external_load and the authmap
-      $acct = user_load_by_name($cas_name);
+      $account = user_load_by_name($cas_name);
     }
     else {
       // users are external; use authmap table for associating external users
       $uid = db_query("SELECT uid FROM {cas_user} WHERE cas_name = :cas_name", array(':cas_name' => $cas_name))->fetchField();
       if ($uid) {
-        $acct = user_load($uid);
+        $account = user_load($uid);
       }
-      if (empty($acct) && variable_get('cas_hijack_user', 0)) {
-        $acct = user_load_by_name($cas_name);
+      if (empty($account) && variable_get('cas_hijack_user', 0)) {
+        $account = user_load_by_name($cas_name);
 
-        if (isset($acct->uid)) {
+        if (isset($account->uid)) {
           db_insert('cas_user')
             ->fields(array(
-              'uid' => $acct->uid,
+              'uid' => $account->uid,
               'cas_name' => $cas_name,
             ))
             ->execute();
@@ -263,36 +263,35 @@ function cas_login_check() {
       }
     }
 
-
     // If we don't have a user register them.
-    if (empty($acct) || !$acct->uid ) {
+    if (empty($account) || !$account->uid) {
       if ($cas_user_register == 1) {
-        $acct = cas_user_register($cas_name);
+        $account = cas_user_register($cas_name);
       }
     }
 
     // final check to make sure we have a good user
-    if (!empty($acct) && $acct->uid > 0) {
+    if (!empty($account) && $account->uid > 0) {
 
     // Save single sign out information
     if (!empty($_SESSION['cas_ticket']) && variable_get('cas_signout', FALSE)) {
-      _cas_single_sign_out_save_token($acct);
+      _cas_single_sign_out_save_token($account);
     }
 
     // update the roles
     $edit = array(
-      'roles' => $acct->roles + cas_roles(),
+      'roles' => $account->roles + cas_roles(),
     );
-    $acct = user_save($acct, $edit);
+    $account = user_save($account, $edit);
 
     $edit = array();
     if (module_exists('persistent_login') && $_SESSION['cas_remember']) {
       $edit['persistent_login'] = 1;
     }
-    $user = $acct;
+    $user = $account;
     user_login_finalize($edit);
     drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
-    if (!empty($edit['persistent_login']) &&  $edit['persistent_login']== 1) {
+    if (!empty($edit['persistent_login'])) {
       drupal_set_message(t('You will remain logged in on this computer even after you close your browser.'));
     }
     // We can't count on the menu because we're changing login states.
