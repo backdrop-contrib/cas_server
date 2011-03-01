@@ -436,6 +436,10 @@ function cas_user_load($users) {
   foreach ($result as $record) {
     $users[$record->uid]->cas_names[$record->aid] = $record->cas_name;
   }
+  foreach (array_keys($users) as $uid) {
+    reset($users[$uid]->cas_names);
+    $users[$uid]->cas_name = current($users[$uid]->cas_names);
+  }
 }
 
 /**
@@ -467,20 +471,9 @@ function cas_user_update(&$edit, $account, $category) {
   $cas_name = $edit['cas_name'];
 
   // See if the user currently has any CAS names.
-  $count = count($account->cas_names);
-  if ($count == 0) {
-    if (!empty($cas_name)) {
-      // Add a CAS username.
-      db_insert('cas_user')
-        ->fields(array(
-          'uid' => $account->uid,
-          'cas_name' => $cas_name,
-        ))
-        ->execute();
-    }
-  }
-  elseif ($count == 1) {
-    list($aid) = array_keys($account->cas_names);
+  reset($account->cas_names);
+  if ($aid = key($account->cas_names)) {
+    // The user already has CAS username(s) set.
     if (empty($cas_name)) {
       // Remove a CAS username.
       db_delete('cas_user')
@@ -490,9 +483,24 @@ function cas_user_update(&$edit, $account, $category) {
     }
     else {
       // Change a CAS username.
-      db_merge('cas_user')
-        ->fields(array('cas_name' => $cas_name))
-        ->key(array('aid' => $aid))
+      if ($cas_name != $account->cas_names[$aid]) {
+        db_update('cas_user')
+          ->fields(array('cas_name' => $cas_name))
+          ->condition('uid', $account->uid)
+          ->condition('aid', $aid)
+          ->execute();
+      }
+    }
+  }
+  else {
+    // No current CAS usernames.
+    if (!empty($cas_name)) {
+      // Add a CAS username.
+      db_insert('cas_user')
+        ->fields(array(
+          'uid' => $account->uid,
+          'cas_name' => $cas_name,
+        ))
         ->execute();
     }
   }
@@ -882,26 +890,22 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
       if (user_access('administer users')) {
         // The user is an administrator, so add fields to allow changing the
         // CAS username(s) associated with the account.
-        if (count($account->cas_names) <= 1) {
-          $form['account']['cas_name'] = array(
-            '#type' => 'textfield',
-            '#title' => t('CAS username'),
-            '#default_value' => $account->cas_names,
-            '#description' => t('<a href="@url">Create, edit or delete</a> additional CAS usernames associated with this account.', array('@url' => url('user/' . $account->uid . '/cas'))),
-            '#element_validate' => array('_cas_user_profile_cas_name_element_validate'),
-            '#weight' => -9,
-          );
-          // array_unshift($form['#submit'], '_cas_user_profile_form_submit');
+        $element = array(
+          '#type' => 'textfield',
+          '#title' => t('CAS username'),
+          '#default_value' => $account->cas_name,
+          '#description' => t('<a href="@url">Create, edit or delete</a> additional CAS usernames associated with this account.', array('@url' => url('user/' . $account->uid . '/cas'))),
+          '#element_validate' => array('_cas_user_profile_cas_name_element_validate'),
+          '#weight' => -9,
+        );
+
+        // See if any additional CAS usernames exist.
+        $cas_names = $account->cas_names;
+        array_shift($cas_names);
+        if (!empty($cas_names)) {
+          $element['#description'] .= ' <br />' . t('Other CAS usernames: %cas_names.', array('%cas_names' => implode(', ', $cas_names)));
         }
-        else {
-          $form['account']['cas_name'] = array(
-            '#type' => 'item',
-            '#title' => t('CAS usernames'),
-            '#description' => t('<a href="@url">Create, edit or delete</a> CAS usernames associated with this account.', array('@url' => url('user/' . $account->uid . '/cas'))),
-            '#markup' => t('%cas_names.', array('%cas_names' => implode(', ', $account->cas_names))),
-            '#weight' => -9,
-          );
-        }
+        $form['account']['cas_name'] = $element;
       }
       elseif (cas_is_external_user($account)) {
         // The user is not an administrator, so selectively remove the e-mail
