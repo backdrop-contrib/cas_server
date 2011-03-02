@@ -67,11 +67,9 @@ function cas_login_check() {
   }
 
   // Determine whether we should check for long
-  $cas_check_first = _cas_allow_check_for_login();
-
   $cas_force_login = _cas_force_login();
 
-  if ($cas_force_login || $cas_check_first) {
+  if ($cas_force_login || _cas_allow_check_for_login()) {
 
     // Gets path to CAS library, performs a basic sanity check.
     if (module_exists('libraries')) {
@@ -617,12 +615,19 @@ function cas_login_form_submit($form, &$form_state) {
   $form_state['redirect'] = 'cas';
 }
 
-
+/**
+ * Determine if we should automatically check if the user is authenticated.
+ *
+ * This implements part of the CAS gateway feature.
+ * @see phpCAS::checkAuthentication().
+ *
+ * @return
+ *   TRUE if we should query the CAS server to see if the user is already
+ *   authenticated, FALSE otherwise.
+ */
 function _cas_allow_check_for_login() {
-
-    // Determine whether we should check for long
-  $cas_check_first = variable_get('cas_check_first', 1);
-  if (!$cas_check_first) {
+  if (!variable_get('cas_check_first', 0)) {
+    // The user has disabled the feature.
     return FALSE;
   }
 
@@ -661,111 +666,70 @@ function _cas_allow_check_for_login() {
     }
   }
 
-  // No need if we're on the cas login page.
-  list($arg0) = explode('/', $_GET['q']);
-  // Don't even do the test if we're hitting the cas page
-  if ($arg0 == "cas") {
-    return FALSE;
-  }
-
-   // cron
+  // Do not force login for XMLRPC, Cron, or Drush.
   if (stristr($_SERVER['SCRIPT_FILENAME'], 'xmlrpc.php')) {
     return FALSE;
   }
-
-  // XMLRPC
   if (stristr($_SERVER['SCRIPT_FILENAME'], 'cron.php')) {
     return FALSE;
   }
-
-
- // Drush
   if (stristr($_SERVER['SCRIPT_FILENAME'], 'drush')) {
     return FALSE;
   }
-  // Drush
   if (!empty($_SERVER['argv'][0]) && stristr($_SERVER['argv'][0], 'drush')) {
     return FALSE;
   }
 
-  $pages = variable_get('cas_exclude', CAS_EXCLUDE);
-
   // Test against exclude pages.
-  if ($pages) {
-    $path       = drupal_get_path_alias($_GET['q']);
-    $regexp     = '/^(' . preg_replace(array('/(\r\n?|\n)/', '/\\\\\*/', '/(^|\|)\\\\<front\\\\>($|\|)/'), array('|', '.*', '\1' . variable_get('site_frontpage', 'node') . '\2'), preg_quote($pages, '/')) . ')$/';
-    $path_match = preg_match($regexp, $path);
-
-    // Alter the default
-    if ($path_match) {
+  if ($pages = variable_get('cas_exclude', CAS_EXCLUDE)) {
+    $path = drupal_get_path_alias($_GET['q']);
+    if (drupal_match_path($path, $pages)) {
       return FALSE;
     }
   }
 
-  return $cas_check_first;
+  return TRUE;
 }
 
 /**
- * Determines whether cas login should be enforced for this page load.
- * This is done based on the redirection settings for this module.
+ * Determine if we should require the user be authenticated.
+ *
+ * @return
+ *   TRUE if we should require the user be authenticated, FALSE otherwise.
  */
 function _cas_force_login() {
-
-  list($arg0) = explode('/', $_GET['q']);
-  // Don't even do the test if we're hitting the cas page
-  if ($arg0 == "cas") {
+  // The 'cas' page is a shortcut to force authentication.
+  if (arg(0) == 'cas') {
     return TRUE;
   }
 
-  // cron
+  // Do not force login for XMLRPC, Cron, or Drush.
   if (stristr($_SERVER['SCRIPT_FILENAME'], 'xmlrpc.php')) {
     return FALSE;
   }
-
-  // XMLRPC
   if (stristr($_SERVER['SCRIPT_FILENAME'], 'cron.php')) {
     return FALSE;
   }
-
-
- // Drush
   if (function_exists('drush_verify_cli') && drush_verify_cli()) {
     return FALSE;
   }
 
-  // set the default behavior
-  if (variable_get('cas_access', 0) == 1) {
-    $force_login = TRUE;
-  }
-  else {
-    $force_login = FALSE;
-  }
-
-
-  // Test against exclude pages.
-  $pages = variable_get('cas_exclude', CAS_EXCLUDE);
-  if ($pages) {
-    $path       = drupal_get_path_alias($_GET['q']);
-    $regexp     = '/^(' . preg_replace(array('/(\r\n?|\n)/', '/\\\\\*/', '/(^|\|)\\\\<front\\\\>($|\|)/'), array('|', '.*', '\1' . variable_get('site_frontpage', 'node') . '\2'), preg_quote($pages, '/')) . ')$/';
-    $path_match = preg_match($regexp, $path);
-
-    // Alter the default
-    if ($path_match) {
+  // Excluded page do not need login.
+  if ($pages = variable_get('cas_exclude', CAS_EXCLUDE)) {
+    $path = drupal_get_path_alias($_GET['q']);
+    if (drupal_match_path($path, $pages)) {
       return FALSE;
     }
   }
 
-  $pages = variable_get('cas_pages', '');
-  // This common page matching logic used throughout drupal.
-  if ($pages) {
-    $path       = drupal_get_path_alias($_GET['q']);
-    $regexp     = '/^(' . preg_replace(array('/(\r\n?|\n)/', '/\\\\\*/', '/(^|\|)\\\\<front\\\\>($|\|)/'), array('|', '.*', '\1' . variable_get('site_frontpage', 'node') . '\2'), preg_quote($pages, '/')) . ')$/';
-    $path_match = preg_match($regexp, $path);
+  // Set the default behavior.
+  $force_login = variable_get('cas_access', 0);
 
-    // Alter the default
-    if ($path_match) {
-      if ($force_login) $force_login = FALSE;
-      else $force_login = TRUE;
+  // If we match the speficied paths, reverse the behavior.
+  if ($pages = variable_get('cas_pages', '')) {
+    $path = drupal_get_path_alias($_GET['q']);
+    if (drupal_match_path($path, $pages)) {
+      $force_login = !$force_login;
     }
   }
 
