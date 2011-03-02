@@ -750,7 +750,7 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
         $form['#attached']['css'][] = drupal_get_path('module', 'cas') . '/cas.css';
         $form['#attached']['js'][] = drupal_get_path('module', 'cas') . '/cas.js';
 
-        if (!empty($form_state['input']['cas_identifier']) && $form_state['input']['cas_identifier'] == 1) {
+        if (!empty($form_state['input']['cas_identifier'])) {
           $form['name']['#required'] = FALSE;
           $form['pass']['#required'] = FALSE;
           unset($form['#validate']);
