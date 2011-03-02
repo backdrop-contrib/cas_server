@@ -435,3 +435,36 @@ function cas_library_dir_validate($element) {
     return FALSE;
   }
 }
+
+/**
+ * Expandee file_exists function
+ * From php.net manual page for file_exists
+ */
+function _cas_include_exists($filename) {
+  // Check the simple case.
+  if (file_exists($filename)) return TRUE;
+
+  // Check module directory
+  if (file_exists(drupal_get_path('module', 'cas') . '/' . $filename)) return TRUE;
+
+
+  // Find the include path
+  if (function_exists("get_include_path")) {
+    $include_path = get_include_path();
+  }
+  elseif (FALSE !== ($ip = ini_get("include_path"))) {
+    $include_path = $ip;
+  }
+
+  // Walk the include path, searching for the file
+  if (strpos($include_path, PATH_SEPARATOR) !== FALSE) {
+    $temp = explode(PATH_SEPARATOR, $include_path);
+    for ($n = 0; $n < count($temp); $n++) {
+      if (file_exists(rtrim($temp[$n], '/') . '/' . $filename)) {
+        return TRUE;
+      }
+    }
+  }
+
+  return FALSE;
+}
