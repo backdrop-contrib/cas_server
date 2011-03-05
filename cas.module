@@ -190,12 +190,14 @@ function cas_login_check() {
       $account = user_load($uid);
     }
 
+    $cas_first_login = FALSE;
     // If we don't have a user register them.
     if (empty($account) || !$account->uid) {
       if ($cas_user['register']) {
         $account = cas_user_register($cas_name);
         // Record that the user was just registered.
         $edit = array('cas_first_login' => TRUE);
+        $cas_first_login = TRUE;
       }
     }
 
@@ -226,7 +228,7 @@ function cas_login_check() {
 
       // Save the altered CAS name for future use.
       $_SESSION['cas_name'] = $cas_name;
-      cas_login_page();
+      cas_login_page($cas_first_login);
     }
     else {
       $user = drupal_anonymous_user();
@@ -506,14 +508,17 @@ function cas_save_page() {
 
 /**
  * Redirects to appropriate page based on user settings.
+ *
+ * @param $cas_first_login
+ *   TRUE if the user was just registered and they should be redirected to the
+ *   configured 'Initial login landing page'.
  */
-function cas_login_page() {
+function cas_login_page($cas_first_login = FALSE) {
   global $user;
   $destination = variable_get('site_frontpage', 'node');
   // If it is the user's first CAS login and initial login redirection is enabled, go to the set page
-  if (!empty($_SESSION['cas_first_login']) && (variable_get('cas_first_login', 0) == 1)) {
+  if ($cas_first_login && variable_get('cas_first_login', FALSE)) {
     $destination = variable_get('cas_first_login_destination', '');
-    unset($_SESSION['cas_first_login']);
   }
   elseif (!empty($_REQUEST['destination'])) {
     $destination = $_REQUEST['destination'];
