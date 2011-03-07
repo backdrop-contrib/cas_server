@@ -35,7 +35,7 @@
  *
  * @param $cas_user
  *   An associative array, with the following keys:
- *   - 'user': The CAS machine-readable user name.
+ *   - 'name': The CAS machine-readable user name.
  *   - 'login': If TRUE, the user will be allowed to login to an existing
  *     Drupal account.
  *   - 'register': If TRUE, the user will be allowed to register a Drupal
