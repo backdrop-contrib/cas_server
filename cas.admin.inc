@@ -327,7 +327,7 @@ function cas_admin_settings() {
   $form['login']['cas_login_redir_message'] = array(
     '#type' => 'textfield',
     '#title' => t('Redirection notification message'),
-    '#default_value' => variable_get('cas_login_redit_message', CAS_LOGIN_REDIR_MESSAGE),
+    '#default_value' => variable_get('cas_login_redir_message', CAS_LOGIN_REDIR_MESSAGE),
     '#size' => 55,
     '#maxlength' => 80,
     '#description' => t('Message users see at the top of the cas login form to warn them that they are being redirected.'),
