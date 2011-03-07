@@ -71,20 +71,9 @@ function cas_login_check() {
 
   if ($cas_force_login || _cas_allow_check_for_login()) {
 
-    // Gets path to CAS library, performs a basic sanity check.
-    if (module_exists('libraries')) {
-      $filename = libraries_get_path('CAS');
-    }
-    else {
-      $filename = variable_get('cas_library_dir', 'CAS');
-    }
-    if ($filename != '')
-      $filename .= '/';
-    $filename .= 'CAS.php';
-    include_once($filename);
-
-    if (!class_exists('phpCAS')) {
-      drupal_set_message(t('Error loading CAS library using %filename', array('%filename' => $filename)), 'error');
+    if (!cas_phpcas_load()) {
+      // No need to print a message, as the user will already see the failed
+      // include_once calls.
       return;
     }
 
@@ -239,6 +228,41 @@ function cas_login_check() {
     }
   }
   // End if user is already logged in else
+}
+
+/**
+ * Loads the phpCAS library.
+ *
+ * @param $path
+ *   Attempt to load phpCAS using this path. If omitted, phpCAS will be loaded
+ *   using Libraries API or the configured value.
+ *
+ * @return
+ *   The phpCAS version if the phpCAS was successfully loaded, FALSE otherwise.
+ */
+function cas_phpcas_load($path = NULL) {
+  if (!isset($path)) {
+    if (module_exists('libraries')) {
+      $path = libraries_get_path('CAS');
+    }
+    else {
+      $path = variable_get('cas_library_dir', 'CAS');
+    }
+  }
+
+  // Build the name of the file to load.
+  if ($path != '') {
+    $path = rtrim($path, '/') . '/';
+  }
+  $filename = $path . 'CAS.php';
+
+  include_once($filename);
+
+  if (!defined('PHPCAS_VERSION') || !class_exists('phpCAS')) {
+    // The file could not be loaded successfully.
+    return FALSE;
+  }
+  return PHPCAS_VERSION;
 }
 
 /**
