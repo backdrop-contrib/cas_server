@@ -401,7 +401,7 @@ function cas_library_version_get($dir, &$error = NULL) {
  * Checks that the library is installed in the location specified by loading the
  * class and extracting the version.
  *
- * @param $form_element
+ * @param $element
  *   The form element containing the "library" fieldset.
  * @param $form_state
  *   An array containing the form's state information.
@@ -409,22 +409,19 @@ function cas_library_version_get($dir, &$error = NULL) {
  * @return
  *   The modified form element containing the "library" fieldset.
  */
-function cas_library_version_check($form_element, $form_state) {
+function cas_library_version_check($element, $form_state) {
   if ($version = cas_library_version_get($form_state['values']['cas_library_dir'], $error)) {
-    $form_element['library']['cas_library_version'] = array(
+    $element['cas_library_version'] = array(
       '#type' => 'item',
       '#title' => t('Library version'),
-      '#markup' => '<pre>' . check_plain($version) . '</pre>',
+      '#value' => '<div class="ok">' . check_plain($version) . '</div>',
       '#description' => t('The phpCAS library was loaded and returned this version information.'),
     );
   }
   else {
-    $form_element['library'] = array(
-      '#value' => '<p class="error">' . $error . '</p>',
-    );
+    $element['#value'] = '<div class="error">' . $error . '</div>';
   }
-  $form_element['library']['cas_library_version']['#type'] = 'item';
-  return $form_element;
+  return $element;
 }
 
 /**
