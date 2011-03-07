@@ -1029,7 +1029,7 @@ function cas_user_module_invoke($type, &$edit, $account) {
 function cas_roles() {
   $cas_roles = &drupal_static(__FUNCTION__);
   if (!isset($cas_roles)) {
-    $cas_roles = array_intersect_key(user_roles(), variable_get('cas_auto_assigned_role', array(DRUPAL_AUTHENTICATED_RID)));
+    $cas_roles = array_intersect_key(user_roles(), array_filter(variable_get('cas_auto_assigned_role', array(DRUPAL_AUTHENTICATED_RID => TRUE))));
   }
   return $cas_roles;
 }
