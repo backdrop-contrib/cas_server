@@ -751,7 +751,7 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
   switch ($form_id) {
     case 'user_login':
     case 'user_login_block':
-      if (variable_get('cas_login_form', CAS_ADD_LINK) == CAS_ADD_LINK || variable_get('cas_login_form', CAS_MAKE_DEFAULT) == CAS_MAKE_DEFAULT) {
+      if (variable_get('cas_login_form', CAS_NO_LINK) != CAS_NO_LINK) {
         $form['#attached']['css'][] = drupal_get_path('module', 'cas') . '/cas.css';
         $form['#attached']['js'][] = drupal_get_path('module', 'cas') . '/cas.js';
 
@@ -785,7 +785,7 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
         $form['cas_identifier'] = array(
           '#type' => 'checkbox',
           '#title' => t('Log in using CAS'),
-          '#default_value' => (variable_get('cas_login_form', CAS_NO_LINK) == CAS_ADD_LINK ? 0 : 1),
+          '#default_value' => variable_get('cas_login_form', CAS_NO_LINK) == CAS_MAKE_DEFAULT,
           '#weight' => -1,
           '#description' => t(variable_get('cas_login_redir_message', CAS_LOGIN_REDIR_MESSAGE)),
         );
