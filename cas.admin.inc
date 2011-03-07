@@ -82,7 +82,7 @@ function cas_admin_settings() {
 
   $form['server']['cas_cert_verify'] = array(
     '#type' => 'radios',
-    '#title' => t('CAS PEM certificate verification'),
+    '#title' => t('CAS CA PEM certificate verification'),
     '#default_value' => variable_get('cas_cert_verify', CAS_NO_VERIFY),
     '#options' => array(
       CAS_NO_VERIFY => t('Do not verify the certificate'),
@@ -92,10 +92,10 @@ function cas_admin_settings() {
 
   $form['server']['cas_cert'] = array(
     '#type' => 'textfield',
-    '#title' => t('CAS PEM Certificate (phpCAS 0.6 or greater)'),
+    '#title' => t('CAS CA PEM Certificate'),
     '#default_value' => variable_get('cas_cert', ''),
     '#size' => 30,
-    '#description' => t('With client version 0.6 or greater this is the certificate for validating cas or the cas CA as appropriate.'),
+    '#description' => t('The PEM certificate of the Certificate Authority that issued the certificate of the CAS server.'),
   );
 
   $form['server']['cas_proxy'] = array(
