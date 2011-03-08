@@ -10,24 +10,32 @@
  */
 function cas_admin_settings() {
 
-  // Only displays path settings if Libraries API is not installed.
-  if (!module_exists('libraries')) {
-
-    $form['library'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('CAS library settings'),
-      '#collapsible' => TRUE,
+  $form['library'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('CAS library settings'),
+    '#collapsible' => TRUE,
+  );
+  if (module_exists('libraries')) {
+    // If Libraries API is enabled, print an information item.
+    $form['library']['cas_library_dir'] = array(
+      '#type' => 'item',
+      '#title' => t('Library directory'),
+      '#value' => t('Using <a href="@url">Libraries API</a>.', array('@url' => 'http://drupal.org/project/libraries')),
+      '#description' => t('Please ensure phpCAS is installed in a location compatible with Libraries API. For example, install phpCAS so that <em>sites/all/libraries/CAS/CAS.php</em> exists. See README.txt for more information.'),
       '#after_build' => array('cas_library_version_check'),
     );
-
+  }
+  else {
+    // If Libraries API is not installed, display path settings.
     $form['library']['cas_library_dir'] = array(
       '#type' => 'textfield',
       '#title' => t('Library directory'),
       '#default_value' => variable_get('cas_library_dir', 'CAS'),
       '#description' => t('Specify the path to the directory the CAS.php file resides in. Leave blank to load cas from your phpinclude path.'),
-      '#element_validate' => array('cas_library_dir_validate'),
+      '#after_build' => array('cas_library_version_check'),
     );
   }
+
 
   $form['server'] = array(
     '#type' => 'fieldset',
@@ -347,57 +355,6 @@ function cas_admin_settings() {
 }
 
 /**
- * Validates the cas_admin_settings form.
- */
-function cas_admin_settings_validate(&$form, &$form_state) {
-  if (!module_exists('libraries')) {
-    form_set_value($form['library']['cas_library_dir'], rtrim($form_state['values']['cas_library_dir'], '/'), $form_state);
-  }
-}
-
-/**
- * Returns the version of phpCAS installed on the server.
- *
- * @param $dir
- *   A string containing the directory the CAS.php file resides in.
- * @param &$error
- *   Returns a human readable message as to why the version could not be
- *   retrieved, empty string if there are no errors.
- *
- * @return
- *   A string containing the version, FALSE on errors.
- */
-function cas_library_version_get($dir, &$error = NULL) {
-  $error = '';
-
-  // Gets path to library directory, path to the CAS.php file.
-  if ($dir != '')
-    $dir  = rtrim($dir, '/') . '/';
-  $filename = $dir . 'CAS.php';
-
-  // Make sure that the library exists.
-  if (_cas_include_exists($filename)) {
-    require_once($filename);
-  }
-  else {
-    $error = t('The phpCAS library was not found at %path', array('%path' => $filename));
-    return FALSE;
-  }
-
-  // Verify that the class exists
-  if (!class_exists('phpCAS')) {
-    $error = t('The <em>CAS.php</em> file was loaded, but the <em>phpCAS</em> class was not found.');
-    return FALSE;
-  }
-
-  // Retrieve the version
-  if (!defined('PHPCAS_VERSION')) {
-    $error = t('The phpCAS library was loaded, but the version could not be determined.');
-  }
-  return PHPCAS_VERSION;
-}
-
-/**
  * Checks that the library is installed in the location specified by loading the
  * class and extracting the version.
  *
@@ -409,69 +366,14 @@ function cas_library_version_get($dir, &$error = NULL) {
  * @return
  *   The modified form element containing the "library" fieldset.
  */
-function cas_library_version_check($element, $form_state) {
-  if ($version = cas_library_version_get($form_state['values']['cas_library_dir'], $error)) {
-    $element['cas_library_version'] = array(
-      '#type' => 'item',
-      '#title' => t('Library version'),
-      '#value' => '<div class="ok">' . check_plain($version) . '</div>',
-      '#description' => t('The phpCAS library was loaded and returned this version information.'),
-    );
+function cas_library_version_check($element, &$form_state) {
+  $path = module_exists('libraries') ? NULL : $element['#value'];
+  // Suppress errors if phpCAS cannot be loaded.
+  if ($version = @cas_phpcas_load($path)) {
+    $element['#suffix'] = '<div class="ok messages">' . t('phpCAS version %version successfully loaded.', array('%version' => $version)) . '</div>';
   }
   else {
-    $element['#value'] = '<div class="error">' . $error . '</div>';
+    $element['#suffix'] = '<div class="error messages">' . t('The phpCAS library was not found or could not be loaded.') . '</div>';
   }
   return $element;
-}
-
-/**
- * Validates the CAS library version.
- *
- * @param $element
- *   An array containing the element being validated.
- *
- * @return
- *   A boolean flagging whether or not the element is valid.
- */
-function cas_library_dir_validate($element) {
-  if ($version = cas_library_version_get($element['#value'])) {
-    return TRUE;
-  }
-  else {
-    form_set_error($element['#parents'][0], t('CAS library directory not valid.'));
-    return FALSE;
-  }
-}
-
-/**
- * Expandee file_exists function
- * From php.net manual page for file_exists
- */
-function _cas_include_exists($filename) {
-  // Check the simple case.
-  if (file_exists($filename)) return TRUE;
-
-  // Check module directory
-  if (file_exists(drupal_get_path('module', 'cas') . '/' . $filename)) return TRUE;
-
-
-  // Find the include path
-  if (function_exists("get_include_path")) {
-    $include_path = get_include_path();
-  }
-  elseif (FALSE !== ($ip = ini_get("include_path"))) {
-    $include_path = $ip;
-  }
-
-  // Walk the include path, searching for the file
-  if (strpos($include_path, PATH_SEPARATOR) !== FALSE) {
-    $temp = explode(PATH_SEPARATOR, $include_path);
-    for ($n = 0; $n < count($temp); $n++) {
-      if (file_exists(rtrim($temp[$n], '/') . '/' . $filename)) {
-        return TRUE;
-      }
-    }
-  }
-
-  return FALSE;
 }
