@@ -173,11 +173,7 @@ function cas_login_check() {
       return;
     }
 
-    // users are external; use {cas_user} table for associating external users
-    $uid = db_query("SELECT uid FROM {cas_user} WHERE cas_name = :cas_name", array(':cas_name' => $cas_name))->fetchField();
-    if ($uid) {
-      $account = user_load($uid);
-    }
+    $account = cas_user_load_by_name($cas_name);
 
     $cas_first_login = FALSE;
     // If we don't have a user register them.
@@ -511,6 +507,24 @@ function cas_user_delete($account) {
   db_delete('cas_user')
     ->condition('uid', $account->uid)
     ->execute();
+}
+
+/**
+ * Fetch a user object by CAS name.
+ *
+ * @param $cas_name
+ *   The name of the CAS user.
+ *
+ * @return
+ *   A fully-loaded $user object upon successful user load or FALSE if user
+ *   cannot be loaded.
+ */
+function cas_user_load_by_name($cas_name) {
+  $uid = db_query("SELECT uid FROM {cas_user} WHERE cas_name = :cas_name", array(':cas_name' => $cas_name))->fetchField();
+  if ($uid) {
+    return user_load($uid);
+  }
+  return FALSE;
 }
 
 /**
@@ -1063,27 +1077,52 @@ function cas_roles() {
  *
  * @param $cas_name
  *   The name of the CAS user.
+ * @param $options
+ *   An associative array of options, with the following elements:
+ *    - 'edit': An array of fields and values for the new user. If omitted,
+ *      reasonable defaults are used.
+ *    - 'invoke_cas_user_presave': Defaults to FALSE. Whether or not to invoke
+ *      hook_cas_user_presave() on the newly created account.
  *
  * @return
  *   The user object of the created user.
  */
-function cas_user_register($cas_name) {
-  $edit = array(
+function cas_user_register($cas_name, $options = array()) {
+  // Add some reasonable defaults if they have not yet been provided.
+  $edit = isset($options['edit']) ? $options['edit'] : array();
+  $edit += array(
     'name' => $cas_name,
     'pass' => user_password(),
     'init' => $cas_name,
-    'mail' => '',
+    'mail' => variable_get('cas_domain', '') ? $cas_name . '@' . variable_get('cas_domain', '') : '',
     'status' => 1,
-    'roles' => cas_roles(),
-    'cas_name' => $cas_name,
+    'roles' => array(),
   );
-  $cas_domain = (string) variable_get('cas_domain', '');
-  if ($cas_domain) {
-    $edit['mail'] = $cas_name . '@' . $cas_domain;
-  }
+  $edit['roles'] += cas_roles();
+  $edit['cas_name'] = $cas_name;
+
   // now save the user and become the new user.
   $account = user_save(drupal_anonymous_user(), $edit);
   watchdog("user", 'new user: %n (CAS)', array('%n' => $account->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$account->uid"));
+
+  if (!empty($options['invoke_cas_user_presave'])) {
+    // Populate $edit with some basic properties.
+    $edit = array(
+      'cas_first_login' => TRUE,
+      'cas_user' => array(
+        'name' => $cas_name,
+      ),
+    );
+
+    // Allow other modules to make their own custom changes.
+    cas_user_module_invoke('presave', $edit, $account);
+
+    // Clean up extra variables before saving.
+    unset($edit['cas_user']);
+    unset($edit['cas_first_login']);
+
+    $account = user_save($account, $edit);
+  }
 
   return $account;
 }

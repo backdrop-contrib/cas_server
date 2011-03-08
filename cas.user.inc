@@ -30,21 +30,12 @@ function cas_add_user_form() {
 }
 
 function cas_add_user_form_submit($form, &$form_state) {
-  $account = cas_user_register($form_state['values']['cas_name']);
-
-  // Populate $edit with some basic properties.
-  $edit = array(
-    'cas_first_login' => TRUE,
-    'cas_user' => array(
-      'name' => $form_state['values']['cas_name'],
-    ),
+  $options = array(
+    'invoke_cas_user_presave' => TRUE,
   );
+  $account = cas_user_register($form_state['values']['cas_name'], $options);
 
-  // Allow other modules to make their own custom changes.
-  cas_user_module_invoke('presave', $edit, $account);
-  $account = user_save($account, $edit);
-
-  // Terminate if an error occurred during user_save().
+  // Terminate if an error occurred while registering the user.
   if (!$account) {
     drupal_set_message(t("Error saving user account."), 'error');
     $form_state['redirect'] = '';
