@@ -201,7 +201,8 @@ function cas_update_6301() {
 
   // Migrate entries from {authmap} to {cas_user}.
   $query = db_select('authmap', 'a')
-    ->condition('module', 'cas');
+    ->condition('module', 'cas')
+    ->condition('uid', 0, '<>');
   $query->addField('a', 'uid');
   $query->addField('a', 'authname', 'cas_name');
   db_insert('cas_user')
