@@ -1,0 +1,221 @@
+<?php
+
+/**
+ * @file
+ * Dummy module implementing a CAS Server.
+ */
+
+/**
+ *
+ */
+function cas_test_cas_phpcas_alter() {
+  global $PHPCAS_CLIENT;
+
+  // Set the User-Agent field which is used by SimpleTest to identify testing
+  // requests.
+  $test_info = &$GLOBALS['drupal_test_info'];
+  if (!empty($test_info['test_run_id'])) {
+    phpCAS::setExtraCurlOption(CURLOPT_USERAGENT, drupal_generate_test_ua($test_info['test_run_id']));
+  }
+
+  // Set all CAS server URLs manually, as this is the only way to specify an
+  // HTTP (i.e., not HTTPS) connection.
+  $service_url = phpCAS::getServiceURL();
+  phpCAS::setServerLoginURL(url('cas_test/login', array(
+    'query' => array('service' => $service_url),
+    'absolute' => TRUE,
+  )));
+
+  switch ($PHPCAS_CLIENT->getServerVersion()) {
+    case CAS_VERSION_1_0:
+      phpCAS::setServerServiceValidateURL(url('cas_test/validate', array('absolute' => TRUE)));
+      break;
+    case CAS_VERSION_2_0:
+      phpCAS::setServerServiceValidateURL(url('cas_test/serviceValidate', array('absolute' => TRUE)));
+      phpCAS::setServerProxyValidateURL(url('cas_test/proxyValidate',  array('absolute' => TRUE)));
+      break;
+    default:
+      throw new Exception('Unknown CAS server version.');
+      break;
+  }
+
+  phpCAS::setServerLogoutURL(url('cas_test/logout',  array('absolute' => TRUE)));
+
+  // SAML not currently implemented.
+  // phpCAS::setServerSamlValidateURL(url('cas_test/samlValidate', array('absolute' => TRUE)));
+}
+
+/**
+ * Implements hook_menu().
+ */
+function cas_test_menu() {
+  $items = array();
+  $items['cas_test/login'] = array(
+    'page callback' => 'cas_test_login',
+    'title' => 'CAS Login',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
+  $items['cas_test/validate'] = array(
+    'page callback' => 'cas_test_validate',
+    'title' => 'CAS Validate',
+    'access callback' => TRUE,
+    'delivery callback' => '',
+    'type' => MENU_CALLBACK,
+  );
+  $items['cas_test/serviceValidate'] = array(
+    'page callback' => 'cas_test_service_validate',
+    'title' => 'CAS Service Validate',
+    'access callback' => TRUE,
+    'delivery callback' => '',
+    'type' => MENU_CALLBACK,
+  );
+  $items['cas_test/proxyValidate'] = array(
+    'page callback' => 'cas_test_service_validate',
+    'title' => 'CAS Proxy Ticket Validate',
+    'access callback' => TRUE,
+    'delivery callback' => '',
+    'type' => MENU_CALLBACK,
+  );
+  $items['cas_test/logout'] = array(
+    'page callback' => 'cas_test_logout',
+    'title' => 'CAS Logout',
+    'access callback' => TRUE,
+    'delivery callback' => '',
+    'type' => MENU_CALLBACK,
+    );
+  return $items;
+}
+
+/**
+ * Initiate a login request.
+ *
+ * Set the 'cas_test_cas_name' variable to the CAS name of the user to be
+ * logged in.
+ */
+function cas_test_login() {
+  // Get the service and make a ticket.
+  $service = $_REQUEST['service'];
+  $cas_name = variable_get('cas_test_cas_name', '');
+
+  if ($cas_name) {
+    // Generate a ticket and redirect to the service URL with the login ticket.
+    $ticket = _cas_test_ticket_generate($service, $cas_name);
+    // Force redirection.
+    unset($_GET['destination']);
+    drupal_goto($service, array('query' => array('ticket' => $ticket)));
+  }
+  else {
+    // No CAS name was provided, print an error message.
+    print "Warning: No CAS name provided.\n";
+    exit();
+  }
+}
+
+/**
+ * Validate a ticket using the CAS 1.x protocol.
+ */
+function cas_test_validate() {
+  //Obtain the ticket from the url and validate it.
+  $ticket = $_GET['ticket'];
+  $service = $_GET['service'];
+  $cas_name = _cas_test_ticket_validate($service, $ticket);
+  if ($cas_name) {
+    print "yes\n";
+    print "$cas_name\n";
+  }
+  else {
+    print "no\n";
+    print "\n";
+  }
+  exit();
+}
+
+/**
+ * Validate a ticket using the CAS 2.0 protocol.
+ */
+function cas_test_service_validate() {
+  $ticket = $_GET['ticket'];
+  $service = $_GET['service'];
+  $cas_name = _cas_test_ticket_validate($service, $ticket);
+  if (!$cas_name ) $cas_error='INVALID_TICKET';
+  if (!$ticket || !$service) $cas_error='INVALID_REQUEST';
+
+  header('Content-type:', 'text/xml');
+  if ($cas_name) {
+    //@TODO Generate proxy granting ticket
+    print "<cas:serviceResponse xmlns:cas='http://www.yale.edu/tp/cas'>\n" .
+          "  <cas:authenticationSuccess>\n" .
+          "    <cas:user>$cas_name</cas:user>\n" .
+          "  </cas:authenticationSuccess>\n" .
+          "</cas:serviceResponse>\n";
+  }
+  else {
+    print "<cas:serviceReponse xmlns:cas='http://www.yale.edu/tp/cas'>\n" .
+          "  <cas:authenticationFailure code=\"$cas_error\">\n" .
+          "     Ticket $ticket not recognized.\n" .
+          "  </cas:authenticationFailure>" .
+          "</cas:serviceResponse>";
+  }
+  exit();
+}
+
+/**
+ * Log out a user.
+ */
+function cas_test_logout() {
+  if (isset($_GET['url'])) {
+    print t('Logged out. Continue to @url.', array('@url' => $_GET['url']));
+  }
+  else {
+    print t('Logged out. No redirection provided.');
+  }
+  exit();
+}
+
+/**
+ * Generate a login ticket.
+ *
+ * @param $service
+ *   The service URL.
+ * @param $cas_name
+ *   The CAS username.
+ *
+ * @return
+ *   A login ticket which may be used to authenticate the CAS username at the
+ *   service URL.
+ */
+function _cas_test_ticket_generate($service, $cas_name) {
+  // Generate a one-time ticket.
+  $ticket = 'ST-' . user_password(32);
+
+  // Save the ticket in the database.
+  $tickets = variable_get('cas_test_tickets', array());
+  $tickets[$service][$ticket] = $cas_name;
+  variable_set('cas_test_tickets', $tickets);
+
+  return $ticket;
+}
+
+/**
+ * Validate a one-time-use login ticket.
+ *
+ * @param $service
+ *   The service URL.
+ * @param $ticket
+ *   The login or proxy ticket.
+ *
+ * @return
+ *   The CAS username corresponding to the ticket, or FALSE if the ticket is
+ *   invalid.
+ */
+function _cas_test_ticket_validate($service, $ticket) {
+  // Look up the ticket
+  $cas_name = FALSE;
+  $tickets = variable_get('cas_test_tickets', array());
+  if (isset($tickets[$service][$ticket])) {
+    $cas_name = $tickets[$service][$ticket];
+    unset($tickets[$service][$ticket]);
+  }
+  return $cas_name;
+}

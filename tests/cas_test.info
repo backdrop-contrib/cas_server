@@ -1,0 +1,5 @@
+name = "CAS module tests"
+description = "Support module for CAS testing."
+package = Testing
+core = 7.x
+hidden = TRUE

@@ -1,0 +1,436 @@
+<?php
+
+/**
+ * @file
+ * Tests for cas.module.
+ */
+
+class CasTestHelper extends DrupalWebTestCase {
+  protected $admin_user;
+
+  function setUp() {
+    parent::setUp(array('cas', 'cas_test', 'libraries'));
+
+    // Create admin user.
+    $this->admin_user = $this->drupalCreateUser(array('administer users', 'administer cas'));
+  }
+
+  /**
+   * Create a CAS user with the specified username.
+   *
+   * @param $cas_name
+   *   The CAS username. If omitted, a CAS username will be automatically
+   *   generated.
+   * @param $permissions
+   *   An array of permissions to assign to the created user.
+   *
+   * @return
+   *   A user account object. The CAS username is present in the cas_name
+   *   field.
+   */
+  function casCreateUser($cas_name = NULL, $permissions = array('access comments', 'access content', 'post comments', 'skip comment approval')) {
+    // Create user.
+    $account = $this->drupalCreateUser($permissions);
+    $pass_raw = $account->pass_raw;
+
+    // Add CAS username.
+    if (empty($cas_name)) {
+      $cas_name = $this->randomName();
+    }
+    $edit['cas_name'] = $cas_name;
+    $account = user_save($account, $edit);
+
+    // Restore password.
+    $account->pass_raw = $pass_raw;
+    return $account;
+  }
+
+  /**
+   * Log in a CAS user with the internal browser.
+   *
+   * @param $account
+   *   A user object with a valid CAS username field, or the CAS username as a
+   *   string.
+   */
+  function casLogin($account) {
+    if ($this->loggedInUser) {
+      $this->drupalLogout();
+    }
+
+    // Log in the user.
+    $cas_name = is_object($account) ? $account->cas_name : $account;
+    variable_set('cas_test_cas_name', $cas_name);
+    $this->drupalGet('cas');
+
+    $pass = $this->assertLink(t('Log out'), 0, t('CAS user %cas_name successfully logged in.', array('%cas_name' => $cas_name)), t('User login'));
+    if ($pass) {
+      $this->loggedInUser = cas_user_load_by_name($cas_name, TRUE);
+    }
+  }
+}
+
+class CasUserAdminTestCase extends CasTestHelper {
+
+  public static function getInfo() {
+    return array(
+      'name' => 'User administration',
+      'description' => 'Test CAS user administration.',
+      'group' => 'Central Authentication Service'
+    );
+  }
+
+  /**
+   * Registers, modifies, and deletes a CAS user using User API hooks.
+   */
+  function testCASUserHooks() {
+    // Create a test account.
+    $account = $this->drupalCreateUser();
+    $uid = $account->uid;
+
+    // Add a CAS username.
+    $cas_name = $this->randomName();
+    $edit = array('cas_name' => $cas_name);
+    $account = user_save($account, $edit);
+    $this->assertEqual($cas_name, $account->cas_name, t('CAS username %cas_name successfully created.', array('%cas_name' => $cas_name)));
+
+    // Reload the account and ensure the CAS name is still present.
+    $account = user_load($uid);
+    $this->assertEqual($cas_name, $account->cas_name, t('CAS username %cas_name successfully saved.', array('%cas_name' => $cas_name)));
+
+    // Load the account by the CAS username.
+    $account = cas_user_load_by_name($cas_name);
+    $this->assertEqual($uid, $account->uid, t('Loaded the correct account with CAS username %cas_name.', array('%cas_name' => $cas_name)));
+
+    // Change the CAS username.
+    $cas_new_name = $this->randomName();
+    $account = user_load($uid);
+    $edit = array('cas_name' => $cas_new_name);
+    user_save($account, $edit);
+    $account = user_load($uid);
+    $this->assertEqual($cas_new_name, $account->cas_name, t('CAS username %cas_name successfully updated.', array('%cas_name' => $cas_new_name)));
+    $this->assertEqual(count($account->cas_names), 1, t('Only one CAS username is present.'));
+    $account = cas_user_load_by_name($cas_name);
+    $this->assertFalse($account, t('Could not load account using old CAS username.'));
+
+    // Remove the CAS username.
+    $account = user_load($uid);
+    $edit = array('cas_name' => NULL);
+    user_save($account, $edit);
+    $account = user_load($uid);
+    $this->assertFalse($account->cas_name, t('CAS username successfully deleted.'));
+    $this->assertEqual(count($account->cas_names), 0, t('No CAS usernames are present.'));
+
+    // Attempt to load by a non-existant CAS username.
+    $account = cas_user_load_by_name($cas_new_name);
+    $this->assertFalse($account, t('Could not load account with non-existent CAS username.'));
+
+    // Verify that all CAS usernames have been removed from {cas_user}.
+    $cas_uid_count = db_select('cas_user')
+      ->condition('cas_name', array($cas_name, $cas_new_name), 'IN')
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+    $this->assertEqual($cas_uid_count, 0, t('CAS usernames successfully removed from {cas_user}.'));
+  }
+  /**
+   * Tests adding a user with a CAS username in the administrative interface.
+   */
+  function testUserAdd() {
+    $this->drupalLogin($this->admin_user);
+
+    // Register a user with a CAS username.
+    $cas_name = $this->randomName();
+    $edit = array(
+      'name' => $this->randomName(),
+      'mail' => $this->randomName() . '@example.com',
+      'cas_name' => $cas_name,
+      'pass[pass1]' => $pass = $this->randomString(),
+      'pass[pass2]' => $pass,
+      'notify' => FALSE,
+    );
+    $this->drupalPost('admin/people/create', $edit, t('Create new account'));
+    $this->assertText(t('Created a new user account for @name. No e-mail has been sent.', array('@name' => $edit['name'])), 'User created');
+
+    $this->drupalGet('admin/people');
+    $this->assertText($edit['name'], 'User found in list of users');
+    $this->assertText($edit['cas_name'], 'CAS username found in list of users');
+
+    // Verify that duplicate CAS usernames are not allowed.
+    $edit = array(
+      'name' => $this->randomName(),
+      'mail' => $this->randomName() . '@example.com',
+      'cas_name' => $cas_name,
+      'pass[pass1]' => $pass = $this->randomString(),
+      'pass[pass2]' => $pass,
+      'notify' => FALSE,
+    );
+    $this->drupalPost('admin/people/create', $edit, t('Create new account'));
+    $this->assertText(t('The CAS username is already in use on this site.'), 'CAS username already in use.');
+  }
+
+  /**
+   * Tests adding a CAS user in the administrative interface.
+   */
+  function testCasUserAdd() {
+    $this->drupalLogin($this->admin_user);
+
+    // Add a CAS user.
+    $edit = array(
+      'cas_name' => $this->randomName(),
+    );
+    $this->drupalPost('admin/people/cas/create', $edit, t('Create new account'));
+    $this->assertText(t('Created a new user account for @name. No e-mail has been sent.', array('@name' => $edit['cas_name'])), 'User created');
+
+    // Verify the user shows up in the list of all users.
+    $this->drupalGet('admin/people');
+    $this->assertNoUniqueText($edit['cas_name'], 'User and CAS username found in list of users');
+
+    // Attempt to add the user again and see that it fails.
+    $this->drupalPost('admin/people/cas/create', $edit, t('Create new account'));
+    $this->assertText(t('The CAS username is already in use on this site.'), 'CAS username already in use.');
+  }
+}
+
+/**
+ * Test case to test user editing behavior.
+ */
+class CasUserTestCase extends CasTestHelper {
+
+  public static function getInfo() {
+    return array(
+      'name' => 'User behavior',
+      'description' => 'Test CAS user behavior, including auto-registration and user editing.',
+      'group' => 'Central Authentication Service',
+    );
+  }
+
+  /**
+   * Tests automatically registering a user on login.
+   */
+  function testCasAutoRegister() {
+    $cas_name = $this->randomName();
+    variable_set('cas_test_cas_name', $cas_name);
+
+    // Test that the user is not automatically registered.
+    variable_set('cas_user_register', FALSE);
+    $this->drupalGet('cas');
+    $this->assertRaw(t('No account found for %cas_name.', array('%cas_name' => $cas_name)));
+
+    // Test that the user is automatically registered.
+    variable_set('cas_user_register', TRUE);
+    $this->drupalGet('cas');
+    $this->loggedInUser = cas_user_load_by_name($cas_name, TRUE);
+    $this->assertRaw(t('Logged in via CAS as %cas_username.', array('%cas_username' => $cas_name)));
+    $this->drupalLogout();
+
+    // Create a new user.
+    $user2 = $this->drupalCreateUser();
+    $cas_name = $user2->name;
+    variable_set('cas_test_cas_name', $cas_name);
+
+    // Test that CAS does not hijack an existing username.
+    $this->drupalGet('cas');
+    $this->assertRaw(t('A new account could not be created for %cas_name. The username is already in use on this site.', array('%cas_name' => $cas_name)));
+  }
+
+  function testUserEdit() {
+    $cas_name = $this->randomName();
+    $account = $this->casCreateUser($cas_name, array('change own username'));
+
+    $this->casLogin($cas_name);
+
+    // Standard user page.
+    variable_set('cas_hide_email', FALSE);
+    variable_set('cas_hide_password', FALSE);
+    $this->drupalGet("user/$account->uid/edit");
+    $this->assertField('mail', 'E-mail field is present.');
+    $this->assertField('current_pass', 'Current password field is present.');
+    $this->assertField('pass[pass1]', 'Existing password field 1 is present.');
+    $this->assertField('pass[pass2]', 'Existing password field 2 is present.');
+    $edit = array(
+      'mail' => $mail = $this->randomName() . '@example.com',
+      'current_pass' => $account->pass_raw,
+    );
+    $this->drupalPost("user/$account->uid/edit", $edit, t('Save'));
+    $this->assertFieldByName('mail', $mail);
+
+    // Hide the password, ensure edits can be made without providing
+    // the current password.
+    variable_set('cas_hide_password', TRUE);
+    $this->drupalGet("user/$account->uid/edit");
+    $this->assertNoField('current_pass', 'Current password field is not present.');
+    $this->assertNoField('pass[pass1]', 'Existing password field 1 is not present.');
+    $this->assertNoField('pass[pass2]', 'Existing password field 2 is not present.');
+    $edit = array(
+      'mail' => $mail = $this->randomName() . '@example.com',
+    );
+    $this->drupalPost("user/$account->uid/edit", $edit, t('Save'));
+    $this->assertFieldByName('mail', $mail);
+
+    // Hide the e-mail field as well, ensure that it is not visible.
+    variable_set('cas_hide_email', TRUE);
+    $this->drupalGet("user/$account->uid/edit");
+    $this->assertNoField('mail', 'E-mail field is not present.');
+  }
+}
+
+/**
+ * Test case to test user logout behavior.
+ */
+class CasLogoutRedirectionTestCase extends CasTestHelper {
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Logout redirection',
+      'description' => 'Test CAS user logout redirection.',
+      'group' => 'Central Authentication Service',
+    );
+  }
+
+  function assertLoggedOut() {
+    $this->drupalGet('user');
+    $pass = $this->assertField('name', t('Username field found.'), t('Logout'));
+    $pass = $pass && $this->assertField('pass', t('Password field found.'), t('Logout'));
+      if ($pass) {
+        $this->loggedInUser = FALSE;
+      }
+  }
+
+  /**
+   * Test redirection on user logout.
+   */
+  function testLogoutRedirection() {
+    $account = $this->casCreateUser();
+
+    $this->casLogin($account);
+    $this->drupalGet('caslogout');
+    $this->assertText('Logged out. No redirection provided.');
+    $this->assertLoggedOut();
+
+    // Check that caslogout?destination=<URL> redirects.
+    $destinations = array('http://example.com/', 'http://example.com/?query=yes#fragment');
+    foreach ($destinations as $destination) {
+      $this->casLogin($account);
+      $this->drupalGet('caslogout', array('query' => array('destination' => $destination)));
+      $this->assertText(t('Logged out. Continue to @url.', array('@url' => url($destination, array('absolute' => TRUE)))));
+      $this->assertLoggedOut();
+    }
+
+    // Verify 'cas_logout_destination' works for a variety of destinations.
+    variable_set('cas_logout_redirect', TRUE);
+    $destinations = array('<front>', 'http://example.com/?query=yes#fragment', 'node/1');
+    foreach ($destinations as $destination) {
+      variable_set('cas_logout_destination', $destination);
+      $this->casLogin($account);
+      $this->drupalGet('caslogout');
+      $this->assertText(t('Logged out. Continue to @url.', array('@url' => url($destination, array('absolute' => TRUE)))));
+      $this->assertLoggedOut();
+    }
+
+    // Verify 'cas_logout_destination' can be overwritten by passing the
+    // destination query string.
+    variable_set('cas_logout_destination', 'http://example.com/');
+    $destination = 'node/1';
+    $this->casLogin($account);
+    $this->drupalGet('caslogout', array('query' => array('destination' => $destination)));
+    $this->assertText(t('Logged out. Continue to @url.', array('@url' => url($destination, array('absolute' => TRUE)))));
+    $this->assertLoggedOut();
+  }
+}
+
+/**
+ * Test case to test user login behavior.
+ */
+class CasLoginRedirectionTestCase extends CasTestHelper {
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Login redirection',
+      'description' => 'Test CAS user login redirection.',
+      'group' => 'Central Authentication Service',
+    );
+  }
+
+  /**
+   * Assert that the account just logged in and is at the URL.
+   */
+  function assertLoggedInWithUrl($account, $url) {
+    $pass = $this->assertLink(t('Log out'), 0, t('CAS user %cas_name successfully logged in.', array('%cas_name' => $account->cas_name)), t('User login'));
+    if ($pass) {
+      $this->loggedInUser = $account;
+    }
+    $this->assertUrl($url);
+  }
+
+  /**
+   * Verify login redirection for an existing user.
+   */
+  function testExistingUserLoginRedirection() {
+    $node1 = $this->drupalCreateNode();
+    $node2 = $this->drupalCreateNode();
+    $node3 = $this->drupalCreateNode();
+
+    // Create a CAS user.
+    $account = $this->casCreateUser();
+    $cas_name = $account->cas_name;
+    variable_set('cas_test_cas_name', $cas_name);
+
+    // Test going to 'cas'
+    $this->drupalGet('cas');
+    $this->assertLoggedInWithUrl($account, '');
+    $this->drupalLogout();
+
+    // Test going to 'cas?destination=node/$node1->nid'
+    $destination = "node/$node1->nid";
+    $this->drupalGet('cas', array('query' => array('destination' => $destination)));
+    $this->assertLoggedInWithUrl($account, $destination);
+    $this->drupalLogout();
+
+    // Use the login block on $node2.
+    $destination = "node/$node2->nid";
+    variable_set('cas_login_form', CAS_ADD_LINK);
+    $edit = array('cas_identifier' => TRUE);
+    $this->drupalPost($destination, $edit, t('Log in'));
+    $this->assertLoggedInWithUrl($account, $destination);
+    $this->drupalLogout();
+
+    // Use the regular login page, without a destination.
+    $edit = array('cas_identifier' => TRUE);
+    $this->drupalPost('user/login', $edit, t('Log in'));
+    $this->assertLoggedInWithUrl($account, 'user');
+    $this->drupalLogout();
+
+    // Use the regular login page, with a destination.
+    $destination = "node/$node3->nid";
+    $edit = array('cas_identifier' => TRUE);
+    $this->drupalPost('user/login', $edit, t('Log in'), array('query' => array('destination' => $destination)));
+    $this->assertLoggedInWithUrl($account, $destination);
+    $this->drupalLogout();
+  }
+
+  /**
+   * Verify login redirection for a new user.
+   */
+  function testNewUserLoginRedirection() {
+    // Initial login without a destination goes to front page.
+    $cas_name = $this->randomName();
+    $this->casLogin($cas_name);
+    $this->assertUrl('');
+    $this->drupalLogout();
+
+    // Initial login with redirection goes to specified destination.
+    $node = $this->drupalCreateNode();
+    variable_set('cas_first_login', TRUE);
+    variable_set('cas_first_login_destination', "node/$node->nid");
+    $cas_name = $this->randomName();
+    $account = $this->casLogin($cas_name);
+    $this->assertUrl("node/$node->nid");
+    $this->drupalLogout();
+
+    // The second login should not be redirected.
+    $this->casLogin($cas_name);
+    $this->assertUrl('');
+    $this->drupalLogout();
+  }
+}
+
