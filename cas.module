@@ -448,6 +448,9 @@ function cas_user_insert(&$edit, $account, $category) {
       ))
       ->execute();
   }
+  // Update $account to reflect changes.
+  $users = array($account->uid => $account);
+  cas_user_load($users);
 }
 
 /**
@@ -496,6 +499,9 @@ function cas_user_update(&$edit, $account, $category) {
         ->execute();
     }
   }
+  // Update $account to reflect changes.
+  $users = array($account->uid => $account);
+  cas_user_load($users);
 }
 
 /**
