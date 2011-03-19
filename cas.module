@@ -520,12 +520,25 @@ function cas_user_delete($account) {
  *
  * @param $cas_name
  *   The name of the CAS user.
+ * @param $alter
+ *   If TRUE, run the CAS username through hook_cas_user_alter() before
+ *   loading the account.
  *
  * @return
  *   A fully-loaded $user object upon successful user load or FALSE if user
  *   cannot be loaded.
  */
-function cas_user_load_by_name($cas_name) {
+function cas_user_load_by_name($cas_name, $alter = FALSE) {
+  if ($alter) {
+    $cas_user = array(
+      'name' => $cas_name,
+      'login' => TRUE,
+      'register' => FALSE,
+    );
+    drupal_alter('cas_user', $cas_user);
+    $cas_name = $cas_user['name'];
+  }
+
   $uid = db_query("SELECT uid FROM {cas_user} WHERE cas_name = :cas_name", array(':cas_name' => $cas_name))->fetchField();
   if ($uid) {
     return user_load($uid);
