@@ -611,62 +611,48 @@ function cas_login_page($cas_first_login = FALSE) {
  * Logs a user out of drupal and then out of cas
  */
 function cas_logout() {
-  global $user, $base_url;
+  global $user;
 
-  watchdog('user', 'Session closed for %name.', array('%name' => $user->name));
-
-
-  // Destroy the current session:
-  module_invoke_all('user_logout', $user);
-  session_destroy();
-
-  // We have to use $GLOBALS to unset a global variable:
-  $user   = user_load(0);
-
-  $port   = variable_get('cas_port', '443');
-  $server = variable_get('cas_server', 'cas');
-  $uri    = variable_get('cas_uri', '');
-
-  // Begin constructing logout destination
-  $logout_destination = 'https://' . $server;
-  // Add abnormal port
-  if ($port != '443') {
-    $logout_destination .= ':' . $port;
-  }
-  // Add logout
-  if ($uri) $logout_destination .= '/' . trim($uri, '/');
-  $logout_destination .= '/logout';
+  // Build the logout URL.
+  cas_phpcas_load();
+  cas_phpcas_init();
+  $logout_url = phpCAS::getServerLogoutURL();
+  $options = array();
 
   // Add destination override so that a destination can be specified on the logout link
-  // e.g. caslogout?desination=http://foo.bar.com/foobar
-  // do not accept caslogout as a valid destination, since that may cause a redirect loop
-  $destination = preg_replace("/(destination=|caslogout)/", "", drupal_get_destination());
+  // e.g. caslogout?desination=http://foo.bar.com/foobar.
+  $destination = drupal_get_destination();
+  $destination = $destination['destination'];
 
-  // If there was no override and admin has set and enabled a logout destination, look for it
+  // Do not accept 'caslogout' as a valid destination.
+  if ($destination == 'caslogout') {
+    $destination = '';
+  }
+
+  // If there was no override and admin has set and enabled a logout
+  // destination, look for it
   if (empty($destination) && variable_get('cas_logout_redirect', 0)) {
     $destination = variable_get('cas_logout_destination', '');
-    // redirecti is enabled but no url is given - default to baseurl
-    if (empty($destination)) {
-      $destination = $base_url;
-    }
   }
 
   //Make it an absolute url.  This will also convert <front> to the front page.
-  if ($destination) $destination = url($destination, array('absolute' => TRUE));
-
-  // Add the log out destination if we have one
-  // The three variables are a hack because cas server implementations don't seem to be consistent with
-  // its use.
   if ($destination) {
-    $logout_destination .= '?destination=' . $destination . '&service=' . $destination . '&url=' . $destination;
+    $destination_url = url($destination, array('absolute' => TRUE));
+    $options['query'] = array(
+      'destination' => $destination_url,
+      'service' => $destination_url,
+      'url' => $destination_url,
+    );
   }
 
-  // Remove our original destination from the request array so that it won't cause
-  // drupal_goto to re-write the url.
-  unset($_REQUEST['destination']);
+  // Mimic user_logout().
+  watchdog('user', 'Session closed for %name.', array('%name' => $user->name));
+  module_invoke_all('user_logout', $user);
+  session_destroy();
 
-  // Go to the constructed logout destination
-  drupal_goto($logout_destination);
+  // Force redirection in drupal_goto().
+  unset($_GET['destination']);
+  drupal_goto($logout_url, $options);
 }
 
 
