@@ -28,34 +28,6 @@ function cas_init() {
 }
 
 /**
- * Access function used to make sure cas menu doesn't show up when
- * Not needed.
- *
- * @return boolean
- */
-function cas_menu_check() {
-  global $user;
-  $access = FALSE;
-  if ($user->uid == 0) $access = TRUE;
-  if (strpos($_GET['q'], 'admin/structure/menu') !== FALSE) {
-    $access = TRUE;
-  }
-  return $access;
-}
-
-/**
- * Check to see if we need to display the logout menu.
- *
- * @return boolean
- */
-function cas_menu_logout_check() {
-  global $user;
-  $access = FALSE;
-  if ($user->uid) $access = TRUE;
-  return $access;
-}
-
-/**
  * Checks to see if the user needs to be logged in
  *
  */
@@ -347,13 +319,13 @@ function cas_menu() {
     'path' => 'cas',
     'title' => 'CAS Login',
     'page callback' => 'cas_login_page',
-    'access callback' => 'cas_menu_check',
+    'access callback' => 'user_is_anonymous',
     'type' => MENU_SUGGESTED_ITEM,
   );
   $items['caslogout'] = array(
     'title' => 'CAS Logout',
     'page callback' => 'cas_logout',
-    'access callback' => 'cas_menu_logout_check',
+    'access callback' => 'user_is_logged_in',
     'type' => MENU_SUGGESTED_ITEM,
   );
   return $items;
