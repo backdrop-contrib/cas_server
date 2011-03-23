@@ -77,45 +77,13 @@ function cas_login_check() {
       return;
     }
 
-    // Variable set
-    $server_version    = (string)variable_get('cas_version', '2.0');
-    $server_cas_server = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
-    $server_port       = (int)variable_get('cas_port', '443');
-    $server_uri        = (string)variable_get('cas_uri', '');
-    $cas_cert_verify   = (string)variable_get('cas_cert_verify', CAS_NO_VERIFY);
-    $cas_cert          = (string)variable_get('cas_cert', '');
-    if ( ($debugFile = variable_get("cas_debugfile", "")) != "" ) {
-      phpCAS::setDebug($debugFile);
-    }
     // Start a drupal session
     drupal_session_start();
-    $start_session = (boolean)FALSE;
     cas_save_page();
     _cas_single_sign_out_save_ticket();  // We use this later for CAS 3 logoutRequests
-    if ( variable_get("cas_proxy", 0) ) {
-      phpCAS::proxy($server_version, $server_cas_server, $server_port, $server_uri, $start_session);
-      $casPGTStoragePath = variable_get("cas_pgtpath", "");
-      if ( $casPGTStoragePath != "" ) {
-        $casPGTFormat = variable_get("cas_pgtformat", "plain");
-        phpCAS::setPGTStorageFile($casPGTFormat, $casPGTStoragePath);
-      }
-    }
-    else {
-      phpCAS::client($server_version, $server_cas_server, $server_port, $server_uri, $start_session);
-    }
-    // force CAS authentication
-    switch ($cas_cert_verify) {
-      case CAS_NO_VERIFY:
-        phpCAS::setNoCasServerValidation();
-        break;
-      case CAS_CA_VERIFY:
-        phpCAS::setCasServerCACert($cas_cert);
-        break;
-    }
 
-    // Allow other modules to call phpCAS routines. We do not call
-    // drupal_alter() since there are no parameters to pass.
-    module_invoke_all('cas_phpcas_alter');
+    // Initialize phpCAS.
+    cas_phpcas_init();
 
     // We're going to try phpCAS auth test
     if (!$cas_force_login) {
@@ -260,6 +228,50 @@ function cas_phpcas_load($path = NULL) {
   }
   return PHPCAS_VERSION;
 }
+
+/**
+ * Initialize phpCAS.
+ *
+ * Must be called after cas_phpcas_load().
+ */
+function cas_phpcas_init() {
+  // Variable set
+  $server_version    = (string)variable_get('cas_version', '2.0');
+  $server_cas_server = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
+  $server_port       = (int)variable_get('cas_port', '443');
+  $server_uri        = (string)variable_get('cas_uri', '');
+  $cas_cert_verify   = (string)variable_get('cas_cert_verify', CAS_NO_VERIFY);
+  $cas_cert          = (string)variable_get('cas_cert', '');
+  if ( ($debugFile = variable_get("cas_debugfile", "")) != "" ) {
+    phpCAS::setDebug($debugFile);
+  }
+  $start_session = (boolean)FALSE;
+  if ( variable_get("cas_proxy", 0) ) {
+    phpCAS::proxy($server_version, $server_cas_server, $server_port, $server_uri, $start_session);
+    $casPGTStoragePath = variable_get("cas_pgtpath", "");
+    if ( $casPGTStoragePath != "" ) {
+      $casPGTFormat = variable_get("cas_pgtformat", "plain");
+      phpCAS::setPGTStorageFile($casPGTFormat, $casPGTStoragePath);
+    }
+  }
+  else {
+    phpCAS::client($server_version, $server_cas_server, $server_port, $server_uri, $start_session);
+  }
+  // force CAS authentication
+  switch ($cas_cert_verify) {
+    case CAS_NO_VERIFY:
+      phpCAS::setNoCasServerValidation();
+      break;
+    case CAS_CA_VERIFY:
+      phpCAS::setCasServerCACert($cas_cert);
+      break;
+  }
+
+  // Allow other modules to call phpCAS routines. We do not call
+  // drupal_alter() since there are no parameters to pass.
+  module_invoke_all('cas_phpcas_alter');
+}
+
 
 /**
  * Implements hook_perm().
