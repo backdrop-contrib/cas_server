@@ -215,6 +215,14 @@ function cas_phpcas_load($path = NULL) {
  * Must be called after cas_phpcas_load().
  */
 function cas_phpcas_init() {
+  $initialized = &drupal_static(__FUNCTION__, FALSE);
+  if ($initialized) {
+    // phpCAS cannot be initialized twice. If you need to force this function
+    // to run again, call drupal_static_reset('cas_phpcas_init') first.
+    return;
+  }
+  $initialized = TRUE;
+
   // Variable set
   $server_version    = (string)variable_get('cas_version', '2.0');
   $server_cas_server = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
