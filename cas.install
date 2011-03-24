@@ -118,6 +118,33 @@ function cas_uninstall() {
 }
 
 /**
+ * Implements hook_requirements().
+ */
+function cas_requirements($phase) {
+  $requirements = array();
+  $t = get_t();
+
+  if ($phase == 'runtime') {
+    $phpcas_url = 'https://wiki.jasig.org/display/CASC/phpCAS';
+
+    $requirements['phpcas']['title'] = $t('phpCAS');
+    // Okay to call functions from cas.module since we are in the runtime
+    // phase. We hide errors here in case phpcas could not be loaded.
+    if ($version = @cas_phpcas_load()) {
+      $requirements['phpcas']['value'] = $version;
+      $requirements['phpcas']['severity'] = REQUIREMENT_INFO;
+      $requirements['phpcas']['description'] = $t('Please check periodically for <a href="@phpcas_url">security updates</a> to phpCAS.', array('@phpcas_url' => $phpcas_url));
+    }
+    else {
+      $requirements['phpcas']['value'] = $t('Not found');
+      $requirements['phpcas']['severity'] = REQUIREMENT_ERROR;
+      $requirements['phpcas']['description'] = $t('phpCAS could not be loaded. Please <a href="@phpcas_url">download phpCAS</a> and <a href="@cas_url">configure its location</a>.', array('@phpcas_url' => $phpcas_url, '@cas_url' => url('admin/config/people/cas')));
+    }
+  }
+  return $requirements;
+}
+
+/**
  * Creates CAS login data table for Single-Sign-Out.
  */
 function cas_update_1() {
