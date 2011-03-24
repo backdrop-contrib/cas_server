@@ -114,20 +114,28 @@ function cas_login_check() {
     }
 
     $account = cas_user_load_by_name($cas_name);
-
     $cas_first_login = FALSE;
-    // If we don't have a user register them.
-    if (empty($account) || !$account->uid) {
-      if ($cas_user['register']) {
-        $account = cas_user_register($cas_name);
+
+    // Automatic user registration.
+    if (!$account && $cas_user['register']) {
+      // No account could be found and auto registration is enabled, so attempt
+      // to register a new user.
+      if ($account = cas_user_register($cas_name)) {
         // Record that the user was just registered.
         $edit = array('cas_first_login' => TRUE);
         $cas_first_login = TRUE;
       }
+      else {
+        // The account could not be created, set a message.
+        if ($cas_force_login) {
+          drupal_set_message(t('A new account could not be created for %cas_name. The username is already in use on this site.', array('%cas_name' => $cas_name)), 'error');
+        }
+        return;
+      }
     }
 
     // final check to make sure we have a good user
-    if (!empty($account) && $account->uid > 0) {
+    if ($account && $account->uid > 0) {
       // Save single sign out information
       if (!empty($_SESSION['cas_ticket']) && variable_get('cas_signout', FALSE)) {
         _cas_single_sign_out_save_token($account);
@@ -1074,7 +1082,8 @@ function cas_roles() {
  *      hook_cas_user_presave() on the newly created account.
  *
  * @return
- *   The user object of the created user.
+ *   The user object of the created user, or FALSE if the user cannot be
+ *   created.
  */
 function cas_user_register($cas_name, $options = array()) {
   // Add some reasonable defaults if they have not yet been provided.
@@ -1090,7 +1099,12 @@ function cas_user_register($cas_name, $options = array()) {
   $edit['roles'] += cas_roles();
   $edit['cas_name'] = $cas_name;
 
-  // now save the user and become the new user.
+  // See if the user name is already taken.
+  if ((bool) db_select('users')->fields('users', array('name'))->condition('name', db_like($edit['name']), 'LIKE')->range(0, 1)->execute()->fetchField()) {
+    return FALSE;
+  }
+
+  // Create the user account.
   $account = user_save(drupal_anonymous_user(), $edit);
   watchdog("user", 'new user: %n (CAS)', array('%n' => $account->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$account->uid"));
 
