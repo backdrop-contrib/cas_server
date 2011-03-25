@@ -589,10 +589,10 @@ function cas_login_page($cas_first_login = FALSE) {
   if ($destination == 'user/login' || $destination == 'user/register') {
     $destination = 'user/' . $user->uid;
   }
+
+  // Force redirection.
+  unset($_GET['destination']);
   drupal_goto($destination);
-  // this should never happen.
-  $output .= t("Cas page... you should never get here");
-  return $output;
 }
 
 /**
