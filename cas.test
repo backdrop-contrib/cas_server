@@ -67,6 +67,17 @@ class CasTestHelper extends DrupalWebTestCase {
       $this->loggedInUser = cas_user_load_by_name($cas_name, TRUE);
     }
   }
+
+  /**
+   * Retrieves a Drupal path or an absolute path, as if a link was clicked.
+   *
+   * Sets the HTTP Referer header for the request to the previous URL.
+   */
+  function drupalGetWithHttpReferrer($path, array $options = array(), array $headers = array()) {
+    $this->additionalCurlOptions[CURLOPT_REFERER] = $this->url;
+    $this->drupalGet($path, $options, $headers);
+    unset($this->additionalCurlOptions[CURLOPT_REFERER]);
+  }
 }
 
 class CasUserAdminTestCase extends CasTestHelper {
@@ -369,6 +380,7 @@ class CasLoginRedirectionTestCase extends CasTestHelper {
     $node1 = $this->drupalCreateNode();
     $node2 = $this->drupalCreateNode();
     $node3 = $this->drupalCreateNode();
+    $node4 = $this->drupalCreateNode();
 
     // Create a CAS user.
     $account = $this->casCreateUser();
@@ -404,6 +416,13 @@ class CasLoginRedirectionTestCase extends CasTestHelper {
     $destination = "node/$node3->nid";
     $edit = array('cas_identifier' => TRUE);
     $this->drupalPost('user/login', $edit, t('Log in'), array('query' => array('destination' => $destination)));
+    $this->assertLoggedInWithUrl($account, $destination);
+    $this->drupalLogout();
+
+    // Click on a 'cas' link on node 4.
+    $destination = "node/$node4->nid";
+    $this->drupalGet($destination);
+    $this->drupalGetWithHttpReferrer('cas');
     $this->assertLoggedInWithUrl($account, $destination);
     $this->drupalLogout();
   }
