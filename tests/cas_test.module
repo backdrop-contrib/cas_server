@@ -9,7 +9,6 @@
  *
  */
 function cas_test_cas_phpcas_alter() {
-  global $PHPCAS_CLIENT;
 
   // Set the User-Agent field which is used by SimpleTest to identify testing
   // requests.
@@ -26,7 +25,7 @@ function cas_test_cas_phpcas_alter() {
     'absolute' => TRUE,
   )));
 
-  switch ($PHPCAS_CLIENT->getServerVersion()) {
+  switch (variable_get('cas_version', '2.0')) {
     case CAS_VERSION_1_0:
       phpCAS::setServerServiceValidateURL(url('cas_test/validate', array('absolute' => TRUE)));
       break;
