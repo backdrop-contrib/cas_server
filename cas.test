@@ -425,6 +425,21 @@ class CasLoginRedirectionTestCase extends CasTestHelper {
     $this->drupalGetWithHttpReferrer('cas');
     $this->assertLoggedInWithUrl($account, $destination);
     $this->drupalLogout();
+
+    // Clicking on a 'cas' link from an external host does not redirect back
+    // to that external host.
+    $destination = '';
+    $this->url = 'http://example.com/node/3';
+    $this->drupalGetWithHttpReferrer('cas');
+    $this->assertLoggedInWithUrl($account, $destination);
+    $this->drupalLogout();
+
+    // The destination parameter overrides the HTTP Referer header.
+    $destination = "node/$node2->nid";
+    $this->url = url("node/$node3->nid", array('absolute' => TRUE));
+    $this->drupalGetWithHttpReferrer('cas', array('query' => array('destination' => $destination)));
+    $this->assertLoggedInWithUrl($account, $destination);
+    $this->drupalLogout();
   }
 
   /**
