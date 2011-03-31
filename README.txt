@@ -57,3 +57,14 @@ API Changes Since 6.x-2.x
 =========================
 The hooks hook_auth_name() and hook_auth_filter() were combined and renamed
 to hook_cas_user_alter(). See cas.api.php.
+
+Testing
+=======
+The CAS module comes with built-in test routines. To enable testing on a
+development site, enable the 'Testing' module. Then navigate to Admin >
+Configuration > Development > Testing. The CAS test routines are available
+under "Central Authentication Service".
+
+Note, the CAS test routines will automatically download phpCAS from the JASIG
+website, to ensure a version compatible with the test routines, and so that
+the tests may run successfully on qa.drupal.org.
