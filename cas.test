@@ -17,6 +17,10 @@ class CasTestHelper extends DrupalWebTestCase {
     $modules = array_merge(array('cas', 'cas_test'), $modules);
     parent::setUp($modules);
 
+    // Tests will fail unless clean URLs are enabled, due to an incompatibility
+    // in phpCAS.
+    variable_set('clean_url', TRUE);
+
     // Create admin user.
     $this->admin_user = $this->drupalCreateUser(array('administer users', 'administer cas'));
 
@@ -48,10 +52,8 @@ class CasTestHelper extends DrupalWebTestCase {
     $filename = 'CAS-' . $version . '.tgz';
     $url = rtrim($url, '/') . '/' . $version . '/' . $filename;
 
-    // Download phpCAS tarball to a simpletest cache directory. If we put the
-    // file in the public, private, or temporary directory we would need to
-    // re-download it every test case.
-    $cache_directory = $this->originalFileDirectory . '/simpletest/cas';
+    // Download phpCAS tarball to a simpletest temporary directory.
+    $cache_directory = 'temporary://cas';
     $local = $cache_directory . '/' . $filename;
     if (!file_exists($cache_directory)) {
       mkdir($cache_directory);
@@ -142,24 +144,6 @@ class CasTestHelper extends DrupalWebTestCase {
     $this->drupalGet($path, $options, $headers);
     unset($this->additionalCurlOptions[CURLOPT_REFERER]);
   }
-}
-
-class CasDownloadPhpCasTestCase extends CasTestHelper {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Download phpCAS',
-      'description' => 'Tests downloading and enabling phpCAS',
-      'group' => 'Central Authentication Service',
-    );
-  }
-
-  function testDownloadPhpCas() {
-    $this->drupalLogin($this->admin_user);
-    $this->drupalGet('admin/user/cas');
-    $this->assertNoText(t('The phpCAS library was not found or could not be loaded.'));
-  }
-
 }
 
 class CasUserAdminTestCase extends CasTestHelper {
@@ -301,7 +285,6 @@ class CasUserTestCase extends CasTestHelper {
    * Tests automatically registering a user on login.
    */
   function testCasAutoRegister() {
-    return;
     $cas_name = $this->randomName();
     variable_set('cas_test_cas_name', $cas_name);
 
@@ -328,7 +311,6 @@ class CasUserTestCase extends CasTestHelper {
   }
 
   function testUserEdit() {
-    return;
     $cas_name = $this->randomName();
     $account = $this->casCreateUser($cas_name, array('change own username'));
 
@@ -395,7 +377,6 @@ class CasLogoutRedirectionTestCase extends CasTestHelper {
    * Test redirection on user logout.
    */
   function testLogoutRedirection() {
-    return;
     $account = $this->casCreateUser();
 
     $this->casLogin($account);
@@ -462,7 +443,6 @@ class CasLoginRedirectionTestCase extends CasTestHelper {
    * Verify login redirection for an existing user.
    */
   function testExistingUserLoginRedirection() {
-    return;
     $node1 = $this->drupalCreateNode();
     $node2 = $this->drupalCreateNode();
     $node3 = $this->drupalCreateNode();
@@ -507,7 +487,7 @@ class CasLoginRedirectionTestCase extends CasTestHelper {
 
     // Click on a 'cas' link on node 4.
     $destination = "node/$node4->nid";
-    $this->drupalGet($destination);
+    $this->url = url($destination, array('absolute' => TRUE));
     $this->drupalGetWithHttpReferrer('cas');
     $this->assertLoggedInWithUrl($account, $destination);
     $this->drupalLogout();
@@ -532,7 +512,6 @@ class CasLoginRedirectionTestCase extends CasTestHelper {
    * Verify login redirection for a new user.
    */
   function testNewUserLoginRedirection() {
-    return;
     // Initial login without a destination goes to front page.
     $cas_name = $this->randomName();
     $this->casLogin($cas_name);
