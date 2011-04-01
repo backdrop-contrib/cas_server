@@ -24,60 +24,59 @@ class CasTestHelper extends DrupalWebTestCase {
     // Create admin user.
     $this->admin_user = $this->drupalCreateUser(array('administer users', 'administer cas'));
 
+    // Download and extract in PHPCAS.
+    $this->downloadExtractPhpCas('1.1.3');
+  }
+
+  /**
+   * Download and extract phpCAS.
+   *
+   * Sets the 'cas_library_dir' variable to the directory where phpCAS
+   * is downloaded.
+   *
+   * @param $version
+   *   The phpCAS version number to download and extract.
+   */
+  function downloadExtractPhpCas($version) {
     // Find the most URL of the most recent phpCAS version.
-    $url = variable_get('cas_phpcas_download_url', 'http://downloads.jasig.org/cas-clients/php/');
-    $result = drupal_http_request($url);
-
-    // Extract all available phpCAS versions.
-    preg_match_all('/<a href="(\d.+)\/">/', $result->data, $matches);
-    $versions = $matches[1];
-
-    // The following versions contain bugs rendering them incompatible with the
-    // cas_test module.
-    $bad_versions = array(
-      '1.2.0RC1',
-      '1.2.0RC2',
-      '1.2.0',
-      '1.2.1RC1',
-      '1.2.1',
-    );
-    $versions = array_diff($versions, $bad_versions);
-
-    // Sort versions in ascending order, and select the most recent one.
-    uasort($versions, 'version_compare');
-    $version = end($versions);
-    $this->assertTrue($version, t('Found phpCAS version @version at @url.', array('@version' => $version, '@url' => $url)));
-
-    // Build the filename and URL or the phpCAS tarball.
+    $directory = 'CAS-' . $version;
     $filename = 'CAS-' . $version . '.tgz';
-    $url = rtrim($url, '/') . '/' . $version . '/' . $filename;
+    $url = 'http://downloads.jasig.org/cas-clients/php/' . $version . '/' . $filename;
 
-    // Download phpCAS tarball to a simpletest temporary directory.
-    $cache_directory = 'temporary://cas';
-    $local = $cache_directory . '/' . $filename;
-    if (!file_exists($cache_directory)) {
-      mkdir($cache_directory);
-    }
-    if (!file_exists($local)) {
-      $local = system_retrieve_file($url, $local, FALSE, FILE_EXISTS_REPLACE);
-      $this->assertTrue($local, t('Downloaded @url to @local.', array('@url' => $url, '@local' => $local)));
-    }
-    else {
-      $this->pass(t('Found @local.', array('@url' => $url, '@local' => $local)));
+    // Avoid downloading the file dozens of times
+    $simpletest_cache = $this->originalFileDirectory . '/simpletest/cas';
+    if (!file_exists($simpletest_cache)) {
+      mkdir($simpletest_cache);
     }
 
-    // Extract the files.
-    $archiver = archiver_get_archiver($local);
-    $files = $archiver->listContents();
+    // Local archive name.
+    $local_archive = $simpletest_cache . '/' . $filename;
+    $cas_library_dir = $simpletest_cache . '/' . $directory;
 
-    // We extract to the private directory, for security.
-    $extract_dir = 'private://cas';
-    $cas_library_dir = $extract_dir . '/' . strtok($files[1], '/\\');
-    $archiver->extract($extract_dir);
-    $this->pass(t('Extracted @local to @extract_dir.', array('@local' => $local, '@extract_dir' => $extract_dir)));
+    // Begin single threaded code.
+    if (function_exists('sem_get')) {
+      $semaphore = sem_get(ftok(__FILE__, 1));
+      sem_acquire($semaphore);
+    }
+
+    // Download and extact the archive, but only in one thread.
+    if (!file_exists($local_archive)) {
+      $local_archive = system_retrieve_file($url, $local_archive, FALSE, FILE_EXISTS_REPLACE);
+    }
+    if (!file_exists($cas_library_dir)) {
+      // Extract the files.
+      $archiver = archiver_get_archiver($local_archive);
+      $archiver->extract($simpletest_cache);
+    }
+    if (function_exists('sem_get')) {
+      sem_release($semaphore);
+    }
+    // End single threaded code.
+
+    // Verify that files were successfully extracted.
+    $this->assertTrue(file_exists($cas_library_dir . '/CAS.php'), t('CAS.php found in @cas_library_dir.', array('@cas_library_dir' => $cas_library_dir)));
 
     // Set the CAS library directory.
-    $this->assertTrue(file_exists($cas_library_dir . '/CAS.php'), t('CAS.php found in @cas_library_dir.', array('@cas_library_dir' => $cas_library_dir)));
     variable_set('cas_library_dir', $cas_library_dir);
   }
 
