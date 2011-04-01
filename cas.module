@@ -572,7 +572,7 @@ function cas_save_page() {
  */
 function cas_login_page($cas_first_login = FALSE) {
   global $user;
-  $destination = variable_get('site_frontpage', 'node');
+  $destination = '';
   // If it is the user's first CAS login and initial login redirection is enabled, go to the set page
   if ($cas_first_login && variable_get('cas_first_login', FALSE)) {
     $destination = variable_get('cas_first_login_destination', '');
@@ -832,7 +832,7 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
           '#weight' => -1,
           '#description' => t(variable_get('cas_login_redir_message', CAS_LOGIN_REDIR_MESSAGE)),
         );
-        $form['cas.return_to'] = array('#type' => 'hidden', '#value' => 'cas');
+        $form['cas.return_to'] = array('#type' => 'hidden', '#value' => user_login_destination());
       }
       break;
 
@@ -942,11 +942,9 @@ function cas_login_submit(&$form, &$form_state) {
   if (!empty($form_state['values']['persistent_login'])) {
     $_SESSION['cas_remember'] = 1;
   }
+  // Force redirection.
   unset($_GET['destination']);
-  //$_REQUEST['destination'] = 'cas';
-  $form_state['redirect'] = 'cas';
-  // drupal_set_message('Custom submit handler: <pre>'.print_r($form_state,1). '</pre>' );
-  drupal_redirect_form($form_state);
+  drupal_goto('cas', array('query' => $form_state['values']['cas.return_to']));
 }
 
 function _cas_single_sign_out_check() {
