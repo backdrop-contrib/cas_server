@@ -148,7 +148,6 @@ class CasTestHelper extends DrupalWebTestCase {
     }
   }
 
-
   /**
    * Assert that the user has been logged out.
    */
@@ -161,16 +160,6 @@ class CasTestHelper extends DrupalWebTestCase {
       }
   }
 
-  /**
-   * Retrieves a Drupal path or an absolute path, as if a link was clicked.
-   *
-   * Sets the HTTP Referer header for the request to the previous URL.
-   */
-  function drupalGetWithHttpReferrer($path, array $options = array(), array $headers = array()) {
-    $this->additionalCurlOptions[CURLOPT_REFERER] = $this->url;
-    $this->drupalGet($path, $options, $headers);
-    unset($this->additionalCurlOptions[CURLOPT_REFERER]);
-  }
 }
 
 class CasUserAdminTestCase extends CasTestHelper {
@@ -459,7 +448,6 @@ class CasLoginRedirectionTestCase extends CasTestHelper {
     $node1 = $this->drupalCreateNode();
     $node2 = $this->drupalCreateNode();
     $node3 = $this->drupalCreateNode();
-    $node4 = $this->drupalCreateNode();
 
     // Create a CAS user.
     $account = $this->casCreateUser();
@@ -503,27 +491,9 @@ class CasLoginRedirectionTestCase extends CasTestHelper {
     $this->assertUrl($destination);
     $this->drupalLogout();
 
-    // Click on a 'cas' link on node 4.
-    $destination = "node/$node4->nid";
-    $this->url = url($destination, array('absolute' => TRUE));
-    $this->drupalGetWithHttpReferrer('cas');
-    $this->assertLoggedIn($account);
-    $this->assertUrl($destination);
-    $this->drupalLogout();
-
-    // Clicking on a 'cas' link from an external host does not redirect back
-    // to that external host.
-    // $destination = '';
-    // $this->url = 'http://example.com/node/3';
-    // $this->drupalGetWithHttpReferrer('cas');
-    // $this->assertLoggedIn($account);
-    // $this->assertUrl($destination);
-    // $this->drupalLogout();
-
-    // The destination parameter overrides the HTTP Referer header.
-    $destination = "node/$node2->nid";
-    $this->url = url("node/$node3->nid", array('absolute' => TRUE));
-    $this->drupalGetWithHttpReferrer('cas', array('query' => array('destination' => $destination)));
+    // External destinations are not allowed.
+    $destination = '';
+    $this->drupalGet('cas', array('query' => array('destination' => 'http://example.com/node/3')));
     $this->assertLoggedIn($account);
     $this->assertUrl($destination);
     $this->drupalLogout();
@@ -609,7 +579,7 @@ class CasGatewayTestCase extends CasTestHelper {
    */
   function testCasGatewayLoggedOut() {
     $this->drupalGet('');
-    $this->assertEqual($this->redirect_count, 2, 'Polled CAS server on first request.');
+    $this->assertTrue($this->redirect_count > 1, 'Polled CAS server on first request.');
     $this->drupalGet('');
     $this->assertEqual($this->redirect_count, 0, 'Did not poll CAS server on second request.');
     $this->drupalGet('node');

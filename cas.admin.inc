@@ -268,7 +268,7 @@ function cas_admin_settings() {
     '#default_value' => variable_get('cas_logout_destination', ''),
     '#size' => 30,
     '#maxlength' => 255,
-    '#description' => t("Drupal path or URL. Enter a destination if you want a user to be redirected to this page after logging out of CAS. An example path is <em>blog</em> for the blog page or <em>&lt;front&gt;</em> for the front page."),
+    '#description' => t("Drupal path or URL. Enter a destination if you want a user to be directed to this page after logging out of CAS, or leave blank to direct users back to the previous page. An example path is <em>blog</em> for the blog page or <em>&lt;front&gt;</em> for the front page."),
   );
 
 
