@@ -353,6 +353,16 @@ function cas_menu() {
 }
 
 /**
+ * Implements hook_menu_site_status_alter().
+ */
+function cas_menu_site_status_alter(&$menu_site_status, $path) {
+  if (user_is_logged_in() && $path == 'cas') {
+    // If user is logged in, redirect to '<front>' instead of giving 403.
+    drupal_goto('');
+  }
+}
+
+/**
  * Implements hook_user_operations().
  */
 function cas_user_operations($form = array(), $form_state = array()) {
