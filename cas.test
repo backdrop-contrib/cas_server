@@ -629,3 +629,73 @@ class CasGatewayTestCase extends CasTestHelper {
     $this->assertLoggedIn($account);
   }
 }
+
+/**
+ * Test case for CAS force login feature.
+ */
+class CasRequiredLoginTestCase extends CasTestHelper {
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Required Login',
+      'description' => 'Test CAS required login redirection.',
+      'group' => 'Central Authentication Service',
+    );
+  }
+
+  /**
+   * Test redirection forced by cas_access and cas_pages variables.
+   */
+  function testCasPages() {
+    $node1 = $this->drupalCreateNode();
+    $node2 = $this->drupalCreateNode();
+    $account = $this->casCreateUser();
+    variable_set('cas_test_cas_name', $account->cas_name);
+
+    $this->drupalGet("node/$node2->nid");
+
+    // Enable required login for $node.
+    variable_set('cas_access', 0);
+    variable_set('cas_pages', "node/$node1->nid\nnode/$node2->nid");
+
+    // Visit the node and verify we are logged in.
+    $this->drupalGet("node/$node2->nid");
+    $this->assertLoggedIn($account);
+    $this->assertUrl("node/$node2->nid");
+    $this->drupalLogout();
+
+    // Invert the access restrictions. Verify we can get the access the node
+    // without restriction.
+    variable_set('cas_access', 1);
+    $this->drupalGet("node/$node1->nid");
+    $this->assertField('name', t('Username field found.'), t('Logout'));
+    $this->assertField('pass', t('Password field found.'), t('Logout'));
+
+    // Verify that accessing any other page redirects to the login page.
+    variable_del('cas_test_cas_name');
+    $this->drupalGet('node');
+    $this->assertText('No CAS name provided.');
+  }
+
+  /**
+   * Test redirection prevented by cas_exclude.
+   */
+  function testCasExclude() {
+    $node = $this->drupalCreateNode();
+    $account = $this->casCreateUser();
+    variable_set('cas_test_cas_name', $account->cas_name);
+
+    variable_set('cas_check_first', TRUE);
+    variable_set('cas_exclude', "node/$node->nid");
+
+    // Visit an excluded page and ensure we did not try to log in.
+    $this->drupalGet("node/$node->nid");
+    $this->assertField('name', t('Username field found.'), t('Logout'));
+    $this->assertField('pass', t('Password field found.'), t('Logout'));
+
+    // Visit another page and ensure we logged in.
+    $this->drupalGet('node');
+    $this->assertLoggedIn($account);
+    $this->assertUrl('node');
+  }
+}
