@@ -67,6 +67,11 @@ class CasTestHelper extends DrupalWebTestCase {
       // Extract the files.
       $archiver = archiver_get_archiver($local_archive);
       $archiver->extract($simpletest_cache);
+      if ($version == '1.1.3') {
+        // Work around issue https://issues.jasig.org/browse/PHPCAS-105.
+        // @see http://drupal.org/node/1120034
+        system_retrieve_file('http://drupal.org/files/issues/CAS-1.1.3-CAS-client.txt', $cas_library_dir . '/CAS/client.php', FALSE, FILE_EXISTS_REPLACE);
+      }
     }
     if (function_exists('sem_get')) {
       sem_release($semaphore);
@@ -132,6 +137,17 @@ class CasTestHelper extends DrupalWebTestCase {
       $this->loggedInUser = cas_user_load_by_name($cas_name, TRUE);
     }
   }
+
+  /**
+   * Assert that the account been logged in.
+   */
+  function assertLoggedIn($account) {
+    $pass = $this->assertLink(t('Log out'), 0, t('CAS user %cas_name successfully logged in.', array('%cas_name' => $account->cas_name)), t('User login'));
+    if ($pass) {
+      $this->loggedInUser = $account;
+    }
+  }
+
 
   /**
    * Assert that the user has been logged out.
@@ -437,17 +453,6 @@ class CasLoginRedirectionTestCase extends CasTestHelper {
   }
 
   /**
-   * Assert that the account just logged in and is at the URL.
-   */
-  function assertLoggedInWithUrl($account, $url) {
-    $pass = $this->assertLink(t('Log out'), 0, t('CAS user %cas_name successfully logged in.', array('%cas_name' => $account->cas_name)), t('User login'));
-    if ($pass) {
-      $this->loggedInUser = $account;
-    }
-    $this->assertUrl($url);
-  }
-
-  /**
    * Verify login redirection for an existing user.
    */
   function testExistingUserLoginRedirection() {
@@ -463,13 +468,15 @@ class CasLoginRedirectionTestCase extends CasTestHelper {
 
     // Test going to 'cas'
     $this->drupalGet('cas');
-    $this->assertLoggedInWithUrl($account, '');
+    $this->assertLoggedIn($account);
+    $this->assertUrl('');
     $this->drupalLogout();
 
     // Test going to 'cas?destination=node/$node1->nid'
     $destination = "node/$node1->nid";
     $this->drupalGet('cas', array('query' => array('destination' => $destination)));
-    $this->assertLoggedInWithUrl($account, $destination);
+    $this->assertLoggedIn($account);
+    $this->assertUrl($destination);
     $this->drupalLogout();
 
     // Use the login block on $node2.
@@ -477,27 +484,31 @@ class CasLoginRedirectionTestCase extends CasTestHelper {
     variable_set('cas_login_form', CAS_ADD_LINK);
     $edit = array('cas_identifier' => TRUE);
     $this->drupalPost($destination, $edit, t('Log in'));
-    $this->assertLoggedInWithUrl($account, $destination);
+    $this->assertLoggedIn($account);
+    $this->assertUrl($destination);
     $this->drupalLogout();
 
     // Use the regular login page, without a destination.
     $edit = array('cas_identifier' => TRUE);
     $this->drupalPost('user/login', $edit, t('Log in'));
-    $this->assertLoggedInWithUrl($account, 'user');
+    $this->assertLoggedIn($account);
+    $this->assertUrl('user');
     $this->drupalLogout();
 
     // Use the regular login page, with a destination.
     $destination = "node/$node3->nid";
     $edit = array('cas_identifier' => TRUE);
     $this->drupalPost('user/login', $edit, t('Log in'), array('query' => array('destination' => $destination)));
-    $this->assertLoggedInWithUrl($account, $destination);
+    $this->assertLoggedIn($account);
+    $this->assertUrl($destination);
     $this->drupalLogout();
 
     // Click on a 'cas' link on node 4.
     $destination = "node/$node4->nid";
     $this->url = url($destination, array('absolute' => TRUE));
     $this->drupalGetWithHttpReferrer('cas');
-    $this->assertLoggedInWithUrl($account, $destination);
+    $this->assertLoggedIn($account);
+    $this->assertUrl($destination);
     $this->drupalLogout();
 
     // Clicking on a 'cas' link from an external host does not redirect back
@@ -505,14 +516,16 @@ class CasLoginRedirectionTestCase extends CasTestHelper {
     // $destination = '';
     // $this->url = 'http://example.com/node/3';
     // $this->drupalGetWithHttpReferrer('cas');
-    // $this->assertLoggedInWithUrl($account, $destination);
+    // $this->assertLoggedIn($account);
+    // $this->assertUrl($destination);
     // $this->drupalLogout();
 
     // The destination parameter overrides the HTTP Referer header.
     $destination = "node/$node2->nid";
     $this->url = url("node/$node3->nid", array('absolute' => TRUE));
     $this->drupalGetWithHttpReferrer('cas', array('query' => array('destination' => $destination)));
-    $this->assertLoggedInWithUrl($account, $destination);
+    $this->assertLoggedIn($account);
+    $this->assertUrl($destination);
     $this->drupalLogout();
   }
 
@@ -570,5 +583,49 @@ class CasSingleSignOutTestCase extends CasTestHelper {
 
     // @todo: Add additional tests for other methods of logging in (especially
     //   methods coming from cas_pages).
+  }
+}
+
+/**
+ * Test case for CAS gateway feature.
+ */
+class CasGatewayTestCase extends CasTestHelper {
+
+  public static function getInfo() {
+    return array(
+      'name' => 'CAS Gateway',
+      'description' => 'Test CAS Gateway ("Check to see if user is already logged in") feature.',
+      'group' => 'Central Authentication Service',
+    );
+  }
+
+  function setUp() {
+    parent::setUp();
+    variable_set('cas_check_first', TRUE);
+  }
+
+  /**
+   * Test the CAS Gateway functionality of the user is not logged in.
+   */
+  function testCasGatewayLoggedOut() {
+    $this->drupalGet('');
+    $this->assertEqual($this->redirect_count, 2, 'Polled CAS server on first request.');
+    $this->drupalGet('');
+    $this->assertEqual($this->redirect_count, 0, 'Did not poll CAS server on second request.');
+    $this->drupalGet('node');
+    $this->assertEqual($this->redirect_count, 0, 'Did not poll CAS server on third request.');
+  }
+
+  /**
+   * Test the CAS Gateway functionality of the user is logged in.
+   */
+  function testCasGatewayLoggedIn() {
+    // Create a user.
+    $cas_name = $this->randomName();
+    $account = $this->casCreateUser($cas_name);
+    variable_set('cas_test_cas_name', $cas_name);
+
+    $this->drupalGet('node');
+    $this->assertLoggedIn($account);
   }
 }

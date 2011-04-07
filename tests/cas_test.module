@@ -104,6 +104,12 @@ function cas_test_login() {
     unset($_GET['destination']);
     drupal_goto($service, array('query' => array('ticket' => $ticket)));
   }
+  elseif (isset($_GET['gateway']) && $_GET['gateway'] == 'true') {
+    // We were not able to log in the user, so redirect to the service URL.
+    // Force redirection.
+    unset($_GET['destination']);
+    drupal_goto($service);
+  }
   else {
     // No CAS name was provided, print an error message.
     print "Warning: No CAS name provided.\n";

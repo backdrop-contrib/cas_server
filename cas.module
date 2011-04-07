@@ -23,6 +23,11 @@ define('CAS_EXCLUDE', 'services/*');
  * Traps a page load to see if authentication is required.
  */
 function cas_init() {
+  if (module_exists('cas_test') && arg(0) == 'cas_test') {
+    // We are destined for a page handled by the cas_test module, so do not
+    // do any processing here. Necessary for CAS gateway tests.
+    return;
+  }
   _cas_single_sign_out_check();
   cas_login_check();
 }
