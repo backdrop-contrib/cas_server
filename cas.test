@@ -134,6 +134,18 @@ class CasTestHelper extends DrupalWebTestCase {
   }
 
   /**
+   * Assert that the user has been logged out.
+   */
+  function assertLoggedOut() {
+    $this->drupalGet('user');
+    $pass = $this->assertField('name', t('Username field found.'), t('Logout'));
+    $pass = $pass && $this->assertField('pass', t('Password field found.'), t('Logout'));
+      if ($pass) {
+        $this->loggedInUser = FALSE;
+      }
+  }
+
+  /**
    * Retrieves a Drupal path or an absolute path, as if a link was clicked.
    *
    * Sets the HTTP Referer header for the request to the previous URL.
@@ -363,15 +375,6 @@ class CasLogoutRedirectionTestCase extends CasTestHelper {
     );
   }
 
-  function assertLoggedOut() {
-    $this->drupalGet('user');
-    $pass = $this->assertField('name', t('Username field found.'), t('Logout'));
-    $pass = $pass && $this->assertField('pass', t('Password field found.'), t('Logout'));
-      if ($pass) {
-        $this->loggedInUser = FALSE;
-      }
-  }
-
   /**
    * Test redirection on user logout.
    */
@@ -538,3 +541,34 @@ class CasLoginRedirectionTestCase extends CasTestHelper {
   }
 }
 
+/**
+ * Test CAS Single Sign-Out.
+ */
+class CasSingleSignOutTestCase extends CasTestHelper {
+
+  public static function getInfo() {
+    return array(
+      'name' => 'Single Sign-Out',
+      'description' => 'Test CAS Single Sign-Out.',
+      'group' => 'Central Authentication Service',
+    );
+  }
+
+  function setUp() {
+    parent::setUp();
+    variable_set('cas_signout', TRUE);
+  }
+
+  function testSingleSignOut() {
+    // Create a user, and log in.
+    $cas_name = $this->randomName();
+    $account = $this->casCreateUser($cas_name);
+    $this->casLogin($account);
+
+    cas_test_single_sign_out($cas_name);
+    $this->assertLoggedOut();
+
+    // @todo: Add additional tests for other methods of logging in (especially
+    //   methods coming from cas_pages).
+  }
+}

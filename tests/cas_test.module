@@ -193,6 +193,11 @@ function _cas_test_ticket_generate($service, $cas_name) {
   $tickets[$service][$ticket] = $cas_name;
   variable_set('cas_test_tickets', $tickets);
 
+  // Save the name in the database for single sign-out.
+  $sso = variable_get('cas_test_sso', array());
+  $sso[$cas_name][$service][] = $ticket;
+  variable_set('cas_test_sso', $sso);
+
   return $ticket;
 }
 
@@ -217,4 +222,33 @@ function _cas_test_ticket_validate($service, $ticket) {
     unset($tickets[$service][$ticket]);
   }
   return $cas_name;
+}
+
+/**
+ * Sign out the specified CAS user.
+ *
+ * @param $cas_name
+ */
+function cas_test_single_sign_out($cas_name) {
+  $sso = variable_get('cas_test_sso', array());
+  foreach ($sso[$cas_name] as $service => $tickets) {
+    foreach ($tickets as $ticket) {
+      // Generate posting:
+      $data = array(
+        'logoutRequest' => t("<samlp:LogoutRequest ID=\"!id\" Version=\"2.0\" IssueInstant=\"!time\">\n<saml:NameID>@NOT_USED@</saml:NameID>\n<samlp:SessionIndex>!ticket</samlp:SessionIndex>\n</samlp:LogoutRequest>", array('!id' => user_password(10), '!time' => time(), '!ticket' => $ticket)),
+      );
+
+      // Sign out the user.
+      $options = array(
+        'method' => 'POST',
+        'headers' => array(
+          'Content-Type' => 'application/x-www-form-urlencoded',
+        ),
+        'data' => drupal_http_build_query($data),
+      );
+      drupal_http_request($service, $options);
+    }
+  }
+  unset($sso[$cas_name]);
+  variable_set('cas_test_sso', $sso);
 }
