@@ -244,20 +244,13 @@ function cas_admin_settings() {
 
 
   // Settings for redirection upon first login
-  $form['pages']['cas_first_login'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Force redirection on initial login'),
-    '#default_value' => variable_get('cas_first_login', 0),
-    '#description' => t("Activate this option if you want a user to be directed to the following page after their first CAS login."),
-  );
-
   $form['pages']['cas_first_login_destination'] = array(
     '#type' => 'textfield',
-    '#title' => t('Initial login landing page'),
+    '#title' => t('Initial login destination'),
     '#default_value' => variable_get('cas_first_login_destination', ''),
     '#size' => 30,
     '#maxlength' => 255,
-    '#description' => t("Drupal path or URL. An example path is '<em>blog</em>' for the blog page. '&lt;front&gt;' is the front page. An example URL is '<em>http://www.example.com</em>'."),
+    '#description' => t("Drupal path or URL. Enter a destination if you want the user to be redirected to this page on their first CAS login. An example path is <em>blog</em> for the blog page, <em>&lt;front&gt;</em> for the front page, or <em>user</em> for the user's page."),
   );
 
   // Setting for message displayed to user upon successfull login
@@ -269,20 +262,13 @@ function cas_admin_settings() {
   );
 
   // Setting for page to return to after a CAS logout
-  $form['pages']['cas_logout_redirect'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Redirect user on logout'),
-    '#default_value' => variable_get('cas_logout_redirect', 0),
-    '#description' => t("Activate this option if you want a user to be directed to the following page after logging out of CAS. The logout destination must be specified below."),
-  );
-
   $form['pages']['cas_logout_destination'] = array(
     '#type' => 'textfield',
     '#title' => t('Logout destination'),
     '#default_value' => variable_get('cas_logout_destination', ''),
     '#size' => 30,
     '#maxlength' => 255,
-    '#description' => t("URL. An example URL is '<em>http://www.example.com</em>'. You can also use '&lt;front&gt;' for the front page."),
+    '#description' => t("Drupal path or URL. Enter a destination if you want a user to be redirected to this page after logging out of CAS. An example path is <em>blog</em> for the blog page or <em>&lt;front&gt;</em> for the front page."),
   );
 
 

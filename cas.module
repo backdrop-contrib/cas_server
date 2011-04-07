@@ -578,7 +578,7 @@ function cas_login_page($cas_first_login = FALSE) {
   global $user;
   $destination = '';
   // If it is the user's first CAS login and initial login redirection is enabled, go to the set page
-  if ($cas_first_login && variable_get('cas_first_login', FALSE)) {
+  if ($cas_first_login && variable_get('cas_first_login_destination', '')) {
     $destination = variable_get('cas_first_login_destination', '');
   }
   elseif (!empty($_REQUEST['destination'])) {
@@ -611,19 +611,14 @@ function cas_logout() {
   $logout_url = phpCAS::getServerLogoutURL();
   $options = array();
 
-  // Add destination override so that a destination can be specified on the logout link
-  // e.g. caslogout?desination=http://foo.bar.com/foobar.
-  $destination = drupal_get_destination();
-  $destination = $destination['destination'];
-
-  // Do not accept 'caslogout' as a valid destination.
-  if ($destination == 'caslogout') {
-    $destination = '';
+  if (isset($_GET['destination']) && !url_is_external($_GET['destination'])) {
+    // Add destination override so that a destination can be specified on the
+    // logout link, e.g., caslogout?desination=http://foo.bar.com/foobar. We do
+    // not allow absolute URLs to be passed via $_GET, as this can be an attack
+    // vector.
+    $destination = $_GET['destination'];
   }
-
-  // If there was no override and admin has set and enabled a logout
-  // destination, look for it
-  if (empty($destination) && variable_get('cas_logout_redirect', 0)) {
+  else {
     $destination = variable_get('cas_logout_destination', '');
   }
 

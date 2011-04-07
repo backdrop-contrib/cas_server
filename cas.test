@@ -383,17 +383,23 @@ class CasLogoutRedirectionTestCase extends CasTestHelper {
     $this->assertText('Logged out. No redirection provided.');
     $this->assertLoggedOut();
 
-    // Check that caslogout?destination=<URL> redirects.
-    $destinations = array('http://example.com/', 'http://example.com/?query=yes#fragment');
-    foreach ($destinations as $destination) {
-      $this->casLogin($account);
-      $this->drupalGet('caslogout', array('query' => array('destination' => $destination)));
-      $this->assertText(t('Logged out. Continue to @url.', array('@url' => url($destination, array('absolute' => TRUE)))));
-      $this->assertLoggedOut();
-    }
+    // Verify the destination parameter may be passed on logout, i.e.,
+    // caslogout?destination=node
+    $destination = 'node';
+    $this->casLogin($account);
+    $this->drupalGet('caslogout', array('query' => array('destination' => $destination)));
+    $this->assertText(t('Logged out. Continue to @url.', array('@url' => url($destination, array('absolute' => TRUE)))));
+    $this->assertLoggedOut();
 
-    // Verify 'cas_logout_destination' works for a variety of destinations.
-    variable_set('cas_logout_redirect', TRUE);
+    // Verify that remote destination parameters are not allowed.
+    $destination = 'http://example.com/?query=yes#fragment';
+    $this->casLogin($account);
+    $this->drupalGet('caslogout', array('query' => array('destination' => $destination)));
+    $this->assertText(t('Logged out. No redirection provided.'));
+    $this->assertLoggedOut();
+
+    // Verify 'cas_logout_destination' works for a variety of destinations,
+    // including remote destinations.
     $destinations = array('<front>', 'http://example.com/?query=yes#fragment', 'node/1');
     foreach ($destinations as $destination) {
       variable_set('cas_logout_destination', $destination);
@@ -519,7 +525,6 @@ class CasLoginRedirectionTestCase extends CasTestHelper {
 
     // Initial login with redirection goes to specified destination.
     $node = $this->drupalCreateNode();
-    variable_set('cas_first_login', TRUE);
     variable_set('cas_first_login_destination', "node/$node->nid");
     $cas_name = $this->randomName();
     $account = $this->casLogin($cas_name);

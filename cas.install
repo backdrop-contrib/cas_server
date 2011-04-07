@@ -85,7 +85,6 @@ function cas_uninstall() {
   variable_del('cas_debugfile');
   variable_del('cas_domain');
   variable_del('cas_exclude');
-  variable_del('cas_first_login');
   variable_del('cas_first_login_destination');
   variable_del('cas_hide_email');
   variable_del('cas_hide_password');
@@ -96,7 +95,6 @@ function cas_uninstall() {
   variable_del('cas_login_message');
   variable_del('cas_login_redir_message');
   variable_del('cas_logout_destination');
-  variable_del('cas_logout_redirect');
   variable_del('cas_pages');
   variable_del('cas_pgtformat');
   variable_del('cas_pgtpath');
@@ -110,8 +108,10 @@ function cas_uninstall() {
   variable_del('cas_version');
 
   // And old (un-used) variables.
+  variable_del('cas_first_login');
   variable_del('cas_hijack_user');
   variable_del('cas_ldap_email_attribute');
+  variable_del('cas_logout_redirect');
   variable_del('cas_useldap');
   variable_del('cas_useldap_groups');
   variable_del('cas_verify');
@@ -276,4 +276,37 @@ function cas_update_6302() {
   variable_del('cas_authmap');
   variable_del('cas_hijack_user');
   return $message;
+}
+
+/**
+ * Remove unnecessary CAS settings.
+ */
+function cas_update_6303() {
+  // We have removed the cas_first_login option, and instead verify that
+  // cas_first_login_destination is non-empty. To preserve functionality,
+  // we need to update the destination to '<front>' if previously the option
+  // was selected but the destination was empty.
+  if (variable_get('cas_first_login', FALSE)) {
+    if (variable_get('cas_first_login_destination', '') == '') {
+      variable_set('cas_first_login_destination', '<front>');
+    }
+  }
+  else {
+    variable_set('cas_first_login_destination', '');
+  }
+  variable_del('cas_first_login');
+
+  // Similarly for the cas_logout_redirect and cas_logout_destination
+  // variables.
+  if (variable_get('cas_logout_redirect', FALSE)) {
+    if (variable_get('cas_logout_destination', '') == '') {
+      variable_set('cas_logout_destination', '<front>');
+    }
+  }
+  else {
+    variable_set('cas_logout_destination', '');
+  }
+  variable_del('cas_logout_redirect');
+
+  return array();
 }
