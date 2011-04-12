@@ -315,9 +315,14 @@ function cas_update_6303() {
  * Add destination parameter to CAS Login / CAS Logout menu links.
  */
 function cas_update_6304() {
-  foreach (array('cas', 'caslogout') as $link_path) {
-    $mlid = db_query("SELECT mlid FROM {menu_links} WHERE link_path = :link_path AND module = :module", array(':link_path' => $link_path, ':module' => 'system'))->fetchField();
-    $link = menu_link_load($mlid);
+  // Load and save each link to 'cas' or 'caslogout' so that the 'alter' option
+  // is enabled. This allows us to append the destination parameter to the
+  // links at runtime. Since the menu items 'cas' and 'caslogout' are not
+  // functional without the destination parameter, we do this for all menu
+  // links, even custom defined ones (i.e., those with module = 'menu').
+  $result = db_query("SELECT mlid FROM {menu_links} WHERE link_path IN (:link_path)", array(':link_path' => array('cas', 'caslogout')));
+  foreach ($result as $record) {
+    $link = menu_link_load($record->mlid);
     menu_link_save($link);
   }
 }
