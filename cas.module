@@ -7,8 +7,6 @@
  * create user accounts automatically.
  */
 
-define('CAS_NO_VERIFY', 'none');
-define('CAS_CA_VERIFY', 'ca_verify');
 define('CAS_NO_LINK', 0);
 define('CAS_ADD_LINK', 1);
 define('CAS_MAKE_DEFAULT', 2);
@@ -232,7 +230,6 @@ function cas_phpcas_init() {
   $server_cas_server = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
   $server_port       = (int)variable_get('cas_port', '443');
   $server_uri        = (string)variable_get('cas_uri', '');
-  $cas_cert_verify   = (string)variable_get('cas_cert_verify', CAS_NO_VERIFY);
   $cas_cert          = (string)variable_get('cas_cert', '');
   if ( ($debugFile = variable_get("cas_debugfile", "")) != "" ) {
     phpCAS::setDebug($debugFile);
@@ -250,13 +247,11 @@ function cas_phpcas_init() {
     phpCAS::client($server_version, $server_cas_server, $server_port, $server_uri, $start_session);
   }
   // force CAS authentication
-  switch ($cas_cert_verify) {
-    case CAS_NO_VERIFY:
-      phpCAS::setNoCasServerValidation();
-      break;
-    case CAS_CA_VERIFY:
-      phpCAS::setCasServerCACert($cas_cert);
-      break;
+  if ($cas_cert = variable_get('cas_cert', '')) {
+    phpCAS::setCasServerCACert($cas_cert);
+  }
+  else {
+    phpCAS::setNoCasServerValidation();
   }
 
   $service = isset($_GET['q']) ? $_GET['q'] : 'cas';
