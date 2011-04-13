@@ -286,7 +286,7 @@ function cas_permission() {
  */
 function cas_help($section) {
   switch ($section) {
-    case 'admin/modules#description':
+    case 'admin/help#cas':
       return t("Allows users to authenticate via a Central Authentication Service.");
   }
 }
