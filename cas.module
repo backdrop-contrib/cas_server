@@ -141,7 +141,7 @@ function cas_login_check() {
     // final check to make sure we have a good user
     if ($account && $account->uid > 0) {
       // Save single sign out information
-      if (!empty($_SESSION['cas_ticket']) && variable_get('cas_signout', FALSE)) {
+      if (!empty($_SESSION['cas_ticket'])) {
         _cas_single_sign_out_save_token($account);
       }
 
@@ -971,7 +971,7 @@ function cas_login_submit(&$form, &$form_state) {
 }
 
 function _cas_single_sign_out_check() {
-  if (variable_get('cas_signout', FALSE) && array_key_exists("logoutRequest", $_POST)) {
+  if (isset($_POST["logoutRequest"])) {
     $cas_logout_request_xml_string = utf8_encode($_POST["logoutRequest"]);     // it's important!
     $cas_logout_request_xml = new SimpleXMLElement($cas_logout_request_xml_string);
     if (is_object($cas_logout_request_xml)) {

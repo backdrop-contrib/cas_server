@@ -102,7 +102,6 @@ function cas_uninstall() {
   variable_del('cas_proxy');
   variable_del('cas_registerURL');
   variable_del('cas_server');
-  variable_del('cas_signout');
   variable_del('cas_uri');
   variable_del('cas_user_register');
   variable_del('cas_version');
@@ -112,6 +111,7 @@ function cas_uninstall() {
   variable_del('cas_hijack_user');
   variable_del('cas_ldap_email_attribute');
   variable_del('cas_logout_redirect');
+  variable_del('cas_signout');
   variable_del('cas_useldap');
   variable_del('cas_useldap_groups');
   variable_del('cas_verify');
@@ -307,6 +307,10 @@ function cas_update_6303() {
     variable_set('cas_logout_destination', '');
   }
   variable_del('cas_logout_redirect');
+
+  // Also remove the variable controlling CAS Single Sign-Out which is now
+  // always enabled.
+  variable_del('cas_signout');
 
   return array();
 }

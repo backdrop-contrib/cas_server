@@ -128,13 +128,6 @@ function cas_admin_settings() {
     '#description' => t("Only needed if 'Use CAS proxy initializer' is configured. Leave empty for default."),
   );
 
-  $form['server']['cas_signout'] = array(
-    '#type' => 'checkbox',
-    '#title' => t('Enable CAS Single Sign Out (CAS server 3.1 or greater)'),
-    '#default_value' => variable_get('cas_signout', FALSE),
-    '#description' => t('For more details see <a href="http://www.ja-sig.org/wiki/display/CASUM/Single+Sign+Out">http://www.ja-sig.org/wiki/display/CASUM/Single+Sign+Out</a>.'),
-  );
-
   $form['server']['cas_debugfile'] = array(
     '#type' => 'textfield',
     '#title' => t('CAS debugging output filename'),

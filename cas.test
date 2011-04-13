@@ -537,11 +537,6 @@ class CasSingleSignOutTestCase extends CasTestHelper {
     );
   }
 
-  function setUp() {
-    parent::setUp();
-    variable_set('cas_signout', TRUE);
-  }
-
   function testSingleSignOut() {
     // Create a user, and log in.
     $cas_name = $this->randomName();
