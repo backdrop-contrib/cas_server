@@ -347,10 +347,14 @@ function cas_menu() {
   $items['caslogout'] = array(
     'title' => 'CAS Logout',
     'page callback' => 'cas_logout',
-    'access callback' => 'user_is_logged_in',
+    'access callback' => 'cas_user_is_logged_in',
     'type' => MENU_SUGGESTED_ITEM,
   );
   return $items;
+}
+
+function cas_user_is_logged_in() {
+  return user_is_logged_in() || !empty($_SESSION['phpCAS']['user']);
 }
 
 /**
