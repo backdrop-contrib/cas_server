@@ -269,13 +269,14 @@ function cas_phpcas_init() {
 
 
 /**
- * Implements hook_perm().
+ * Implements hook_permission().
  */
 function cas_permission() {
   return array(
     'administer cas' => array(
       'title' => t('Administer CAS'),
-      'description' => t('Configure cas server, redirection and other settings'),
+      'description' => t('Configure CAS server, default CAS user roles, login/logout redirection, and other settings.'),
+      'restrict access' => TRUE,
     )
   );
 }
