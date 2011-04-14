@@ -125,7 +125,6 @@ function cas_login_check() {
       if ($account = cas_user_register($cas_name)) {
         // Record that the user was just registered.
         $edit = array('cas_first_login' => TRUE);
-        $cas_first_login = TRUE;
       }
       else {
         // The account could not be created, set a message.
@@ -138,6 +137,8 @@ function cas_login_check() {
 
     // final check to make sure we have a good user
     if ($account && $account->uid > 0) {
+      $cas_first_login = !$account->login;
+
       // Save single sign out information
       if (!empty($_SESSION['cas_ticket'])) {
         _cas_single_sign_out_save_token($account);
