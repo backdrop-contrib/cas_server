@@ -41,6 +41,9 @@
  *   - 'register': If TRUE, the user will be allowed to register a Drupal
  *     account if one does not already exist. If 'login' is FALSE, this
  *     setting will be ignored.
+ *   - 'attributes': If phpCAS is new enough to support getAttributes and the
+ *     CAS server supports SAML attributes, this consists of an associative
+ *     array of attribute names and values; otherwise it is an empty array.
  */
 function hook_cas_user_alter(&$cas_user) {
   // Alter the CAS username. The CAS server returned a compound name like

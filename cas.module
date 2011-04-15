@@ -79,6 +79,7 @@ function cas_login_check() {
       'name' => phpCAS::getUser(),
       'login' => TRUE,
       'register' => variable_get('cas_user_register', TRUE),
+      'attributes' => method_exists('phpCAS', 'getAttributes') ? phpCAS::getAttributes() : array(),
     );
     drupal_alter('cas_user', $cas_user);
 
