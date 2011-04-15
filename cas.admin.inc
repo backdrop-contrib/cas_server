@@ -300,7 +300,7 @@ function cas_admin_settings() {
     '#type' => 'checkbox',
     '#title' => t('Initialize CAS as proxy'),
     '#default_value' => variable_get('cas_proxy', 0),
-    '#description' => t('When using a proxy it is required to set the option "Require CAS login for:" to "specific pages" with "node/*" as a specific page or "all pages except specific pages" on the "Redirection settings".')
+    '#description' => t('Initialize phpCAS as a proxy rather than a client. The proxy ticket returned by the CAS server allows access to external services as the CAS user.')
   );
 
   $form['advanced']['cas_proxy_settings'] = array(
