@@ -79,7 +79,7 @@ function cas_login_check() {
       'name' => phpCAS::getUser(),
       'login' => TRUE,
       'register' => variable_get('cas_user_register', TRUE),
-      'attributes' => method_exists('phpCAS', 'getAttributes') ? phpCAS::getAttributes() : array(),
+      'attributes' => cas_phpcas_attributes(),
     );
     drupal_alter('cas_user', $cas_user);
 
@@ -138,6 +138,9 @@ function cas_login_check() {
 
     // final check to make sure we have a good user
     if ($account && $account->uid > 0) {
+      // Save the altered CAS name for future use.
+      $_SESSION['cas_name'] = $cas_name;
+
       $cas_first_login = !$account->login;
 
       // Save single sign out information
@@ -163,8 +166,6 @@ function cas_login_check() {
         drupal_set_message(t('You will remain logged in on this computer even after you close your browser.'));
       }
 
-      // Save the altered CAS name for future use.
-      $_SESSION['cas_name'] = $cas_name;
       cas_login_page($cas_first_login);
     }
     else {
@@ -216,9 +217,13 @@ function cas_phpcas_load($path = NULL) {
 /**
  * Initialize phpCAS.
  *
- * Must be called after cas_phpcas_load().
+ * Will load phpCAS if necessary.
  */
 function cas_phpcas_init() {
+  if (!defined('PHPCAS_VERSION') || !class_exists('phpCAS')) {
+    cas_phpcas_load();
+  }
+
   $initialized = &drupal_static(__FUNCTION__, FALSE);
   if ($initialized) {
     // phpCAS cannot be initialized twice. If you need to force this function
@@ -627,7 +632,6 @@ function cas_logout() {
   global $user;
 
   // Build the logout URL.
-  cas_phpcas_load();
   cas_phpcas_init();
   $logout_url = phpCAS::getServerLogoutURL();
   $options = array();
@@ -1157,6 +1161,37 @@ function cas_user_register($cas_name, $options = array()) {
 
   return $account;
 }
+
+/**
+ * Get the CAS attributes of the current CAS user.
+ *
+ * Ensures that phpCAS is properly initialized before getting the attributes.
+ * @see phpCAS::getAttributes().
+ *
+ * @param $cas_name
+ *   If provided, ensure that the currently logged in CAS user matches this
+ *   CAS username.
+ *
+ * @return
+ *   An associative array of CAS attributes.
+ */
+function cas_phpcas_attributes($cas_name = NULL) {
+  if (isset($cas_name) && $cas_name != cas_current_user()) {
+    // Attributes cannot be extracted for other users, since they are
+    // stored in the session variable.
+    return array();
+  }
+
+  cas_phpcas_init();
+  if (phpCAS::isAuthenticated()) {
+    if (method_exists('phpCAS', 'getAttributes')) {
+      return phpCAS::getAttributes();
+    }
+  }
+
+  return array();
+}
+
 
 /**
  * Insert an array into the specified position of another array.
