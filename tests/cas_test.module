@@ -6,6 +6,26 @@
  */
 
 /**
+ * Implements hook_theme().
+ */
+function cas_test_theme() {
+  return array(
+    'cas_service_validate_success' => array(
+      'variables' => array('name' => NULL, 'attributes' => NULL),
+      'file' => 'cas_test.response.inc',
+    ),
+    'cas_service_validate_attributes' => array(
+      'variables' => array('attributes' => NULL, 'style' => 'jasig'),
+      'file' => 'cas_test.response.inc',
+    ),
+    'cas_service_validate_failure' => array(
+      'variables' => array('ticket' => NULL, 'error_code' => NULL),
+      'file' => 'cas_test.response.inc',
+    ),
+  );
+}
+
+/**
  *
  */
 function cas_test_cas_phpcas_alter() {
@@ -59,47 +79,48 @@ function cas_test_menu() {
     'page callback' => 'cas_test_validate',
     'title' => 'CAS Validate',
     'access callback' => TRUE,
-    'delivery callback' => '',
     'type' => MENU_CALLBACK,
   );
   $items['cas_test/serviceValidate'] = array(
     'page callback' => 'cas_test_service_validate',
     'title' => 'CAS Service Validate',
     'access callback' => TRUE,
-    'delivery callback' => '',
     'type' => MENU_CALLBACK,
   );
   $items['cas_test/proxyValidate'] = array(
     'page callback' => 'cas_test_service_validate',
     'title' => 'CAS Proxy Ticket Validate',
     'access callback' => TRUE,
-    'delivery callback' => '',
     'type' => MENU_CALLBACK,
   );
   $items['cas_test/logout'] = array(
     'page callback' => 'cas_test_logout',
     'title' => 'CAS Logout',
     'access callback' => TRUE,
-    'delivery callback' => '',
     'type' => MENU_CALLBACK,
-    );
+  );
   return $items;
 }
 
 /**
  * Initiate a login request.
  *
- * Set the 'cas_test_cas_name' variable to the CAS name of the user to be
- * logged in.
+ * Set the 'cas_test_cas_user' variable to an associative array containing:
+ * - 'name': CAS username.
+ * - 'attributes': (optional) Any other name-value pairs to be returned by the
+ *   CAS server.
  */
 function cas_test_login() {
   // Get the service and make a ticket.
   $service = $_REQUEST['service'];
-  $cas_name = variable_get('cas_test_cas_name', '');
+  $cas_user = variable_get('cas_test_cas_user', '');
 
-  if ($cas_name) {
+  if ($cas_user) {
+    if (!is_array($cas_user)) {
+      $cas_user = array('name' => $cas_user);
+    }
     // Generate a ticket and redirect to the service URL with the login ticket.
-    $ticket = _cas_test_ticket_generate($service, $cas_name);
+    $ticket = _cas_test_ticket_generate($service, $cas_user);
     // Force redirection.
     unset($_GET['destination']);
     drupal_goto($service, array('query' => array('ticket' => $ticket)));
@@ -124,8 +145,9 @@ function cas_test_validate() {
   //Obtain the ticket from the url and validate it.
   $ticket = $_GET['ticket'];
   $service = $_GET['service'];
-  $cas_name = _cas_test_ticket_validate($service, $ticket);
-  if ($cas_name) {
+  $cas_user = _cas_test_ticket_validate($service, $ticket);
+  if ($cas_user) {
+    $cas_name = $cas_user['name'];
     print "yes\n";
     print "$cas_name\n";
   }
@@ -142,25 +164,14 @@ function cas_test_validate() {
 function cas_test_service_validate() {
   $ticket = $_GET['ticket'];
   $service = $_GET['service'];
-  $cas_name = _cas_test_ticket_validate($service, $ticket);
-  if (!$cas_name ) $cas_error='INVALID_TICKET';
-  if (!$ticket || !$service) $cas_error='INVALID_REQUEST';
 
   header('Content-type:', 'text/xml');
-  if ($cas_name) {
-    //@TODO Generate proxy granting ticket
-    print "<cas:serviceResponse xmlns:cas='http://www.yale.edu/tp/cas'>\n" .
-          "  <cas:authenticationSuccess>\n" .
-          "    <cas:user>$cas_name</cas:user>\n" .
-          "  </cas:authenticationSuccess>\n" .
-          "</cas:serviceResponse>\n";
+  if ($cas_user = _cas_test_ticket_validate($service, $ticket)) {
+    print theme('cas_service_validate_success', $cas_user);
   }
   else {
-    print "<cas:serviceReponse xmlns:cas='http://www.yale.edu/tp/cas'>\n" .
-          "  <cas:authenticationFailure code=\"$cas_error\">\n" .
-          "     Ticket $ticket not recognized.\n" .
-          "  </cas:authenticationFailure>" .
-          "</cas:serviceResponse>";
+    $cas_error = (!$ticket || !$service) ? 'INVALID_REQUEST' : 'INVALID_TICKET';
+    print theme('cas_service_validate_failure', array('ticket' => $ticket, 'error_code' => $error_code));
   }
   exit();
 }
@@ -183,25 +194,27 @@ function cas_test_logout() {
  *
  * @param $service
  *   The service URL.
- * @param $cas_name
- *   The CAS username.
+ * @param $cas_user
+ *   An associative array containing the following keys:
+ *     - 'name': The CAS username.
+ *     - 'attributes': Any other key-value pairs the CAS server should return.
  *
  * @return
  *   A login ticket which may be used to authenticate the CAS username at the
  *   service URL.
  */
-function _cas_test_ticket_generate($service, $cas_name) {
+function _cas_test_ticket_generate($service, $cas_user) {
   // Generate a one-time ticket.
   $ticket = 'ST-' . user_password(32);
 
   // Save the ticket in the database.
   $tickets = variable_get('cas_test_tickets', array());
-  $tickets[$service][$ticket] = $cas_name;
+  $tickets[$service][$ticket] = $cas_user;
   variable_set('cas_test_tickets', $tickets);
 
   // Save the name in the database for single sign-out.
   $sso = variable_get('cas_test_sso', array());
-  $sso[$cas_name][$service][] = $ticket;
+  $sso[$cas_user['name']][$service][] = $ticket;
   variable_set('cas_test_sso', $sso);
 
   return $ticket;
@@ -233,7 +246,7 @@ function _cas_test_ticket_validate($service, $ticket) {
 /**
  * Sign out the specified CAS user.
  *
- * @param $cas_name
+ * @param $cas_user
  */
 function cas_test_single_sign_out($cas_name) {
   $sso = variable_get('cas_test_sso', array());
