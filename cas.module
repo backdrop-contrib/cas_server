@@ -10,9 +10,9 @@
 define('CAS_NO_LINK', 0);
 define('CAS_ADD_LINK', 1);
 define('CAS_MAKE_DEFAULT', 2);
-define('CAS_LOGIN_INVITE_DEFAULT', 'Log in via single sign-on (CAS)');
-define('CAS_LOGIN_DRUPAL_INVITE_DEFAULT', 'Log in locally (no single sign-on)');
-define('CAS_LOGIN_REDIR_MESSAGE', 'You will be redirected to the secure cas login page');
+define('CAS_LOGIN_INVITE_DEFAULT', 'Log in using CAS');
+define('CAS_LOGIN_DRUPAL_INVITE_DEFAULT', 'Cancel CAS login');
+define('CAS_LOGIN_REDIR_MESSAGE', 'You will be redirected to the secure CAS login page.');
 define('CAS_EXCLUDE', 'services/*');
 
 /**
@@ -845,9 +845,15 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
 
         $form['links']['#weight'] = 2;
 
+        $form['cas_login_redirection_message'] = array(
+          '#type' => 'item',
+          '#markup' => t(variable_get('cas_login_redir_message', CAS_LOGIN_REDIR_MESSAGE)),
+          '#weight' => -1,
+        );
+
         $form['cas_identifier'] = array(
           '#type' => 'checkbox',
-          '#title' => t('Log in using CAS'),
+          '#title' => t(variable_get('cas_login_invite', CAS_LOGIN_INVITE_DEFAULT)),
           '#default_value' => variable_get('cas_login_form', CAS_NO_LINK) == CAS_MAKE_DEFAULT,
           '#weight' => -1,
           '#description' => t(variable_get('cas_login_redir_message', CAS_LOGIN_REDIR_MESSAGE)),
