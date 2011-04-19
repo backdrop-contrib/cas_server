@@ -60,7 +60,8 @@ function cas_admin_settings() {
     '#title' => t('Hostname'),
     '#default_value' => variable_get('cas_server', ''),
     '#size' => 30,
-    '#maxlength' => 55,
+    // Hostnames can be 255 characters long.
+    '#maxlength' => 255,
     '#description' => t('Hostname or IP Address of the CAS server.'),
   );
 
@@ -68,8 +69,9 @@ function cas_admin_settings() {
     '#type' => 'textfield',
     '#title' => t('Port'),
     '#default_value' => variable_get('cas_port', '443'),
-    '#size' => 30,
-    '#maxlength' => 8,
+    '#size' => 5,
+    // The maximum port number is 65536, 5 digits.
+    '#maxlength' => 5,
     '#description' => t('443 is the standard SSL port. 8443 is the standard non-root port for Tomcat.'),
   );
 
@@ -85,7 +87,7 @@ function cas_admin_settings() {
     '#type' => 'textfield',
     '#title' => t('Certificate Authority PEM Certificate'),
     '#default_value' => variable_get('cas_cert', ''),
-    '#size' => 30,
+    '#maxlength' => 255,
     '#description' => t('The PEM certificate of the Certificate Authority that issued the certificate of the CAS server. If omitted, the certificate authority will not be verified.'),
   );
 
@@ -110,8 +112,6 @@ function cas_admin_settings() {
     '#type' => 'textfield',
     '#title' => t('CAS Login invitation'),
     '#default_value' => variable_get('cas_login_invite', CAS_LOGIN_INVITE_DEFAULT),
-    '#size' => 55,
-    '#maxlength' => 80,
     '#description' => t('Message users will see to invite them to log in with CAS credentials.'),
   );
 
@@ -119,8 +119,6 @@ function cas_admin_settings() {
     '#type' => 'textfield',
     '#title' => t('Drupal login invitation'),
     '#default_value' => variable_get('cas_login_drupal_invite', CAS_LOGIN_DRUPAL_INVITE_DEFAULT),
-    '#size' => 55,
-    '#maxlength' => 80,
     '#description' => t('Message users will see to invite them to log in with Drupal credentials.'),
   );
 
@@ -128,8 +126,6 @@ function cas_admin_settings() {
     '#type' => 'textfield',
     '#title' => t('Redirection notification message'),
     '#default_value' => variable_get('cas_login_redir_message', CAS_LOGIN_REDIR_MESSAGE),
-    '#size' => 55,
-    '#maxlength' => 80,
     '#description' => t('Message users see at the top of the CAS login form to warn them that they are being redirected to the CAS server.'),
   );
 
@@ -162,7 +158,8 @@ function cas_admin_settings() {
     '#field_prefix' => t('username@'),
     '#default_value' => variable_get('cas_domain', ''),
     '#size' => 30,
-    '#maxlength' => 55,
+    // Hostnames can be 255 characters long.
+    '#maxlength' => 255,
     '#description' => t("If provided, automatically generate each new user's e-mail address. If omitted, the e-mail field will not be populated. Other modules may be used to populate the e-mail field from CAS attributes or LDAP servers."),
   );
 
@@ -260,7 +257,7 @@ function cas_admin_settings() {
     '#type' => 'textfield',
     '#title' => t('Initial login destination'),
     '#default_value' => variable_get('cas_first_login_destination', ''),
-    '#size' => 30,
+    '#size' => 40,
     '#maxlength' => 255,
     '#description' => t("Drupal path or URL. Enter a destination if you want the user to be redirected to this page on their first CAS login. An example path is <em>blog</em> for the blog page, <em>&lt;front&gt;</em> for the front page, or <em>user</em> for the user's page."),
   );
@@ -270,7 +267,7 @@ function cas_admin_settings() {
     '#type' => 'textfield',
     '#title' => t('Logout destination'),
     '#default_value' => variable_get('cas_logout_destination', ''),
-    '#size' => 30,
+    '#size' => 40,
     '#maxlength' => 255,
     '#description' => t("Drupal path or URL. Enter a destination if you want a user to be directed to this page after logging out of CAS, or leave blank to direct users back to the previous page. An example path is <em>blog</em> for the blog page or <em>&lt;front&gt;</em> for the front page."),
   );
@@ -279,6 +276,7 @@ function cas_admin_settings() {
     '#type' => 'textfield',
     '#title' => t('Change password URL'),
     '#default_value' => variable_get('cas_changePasswordURL', ''),
+    '#maxlength' => 255,
     '#description' => t('The URL users should use for changing their password.  Leave blank to use the standard Drupal page.'),
   );
 
@@ -286,6 +284,7 @@ function cas_admin_settings() {
     '#type' => 'textfield',
     '#title' => t('Registration URL'),
     '#default_value' => variable_get('cas_registerURL', ''),
+    '#maxlength' => 255,
     '#description' => t('The URL users should use for changing registering.  Leave blank to use the standard Drupal page.'),
   );
 
@@ -322,7 +321,7 @@ function cas_admin_settings() {
     '#type' => 'textfield',
     '#title' => t('CAS PGT storage path'),
     '#default_value' => variable_get('cas_pgtpath', ''),
-    '#size' => 30,
+    '#maxlength' => 255,
     '#description' => t("Only needed if 'Use CAS proxy initializer' is configured. Leave empty for default."),
   );
 
@@ -330,7 +329,7 @@ function cas_admin_settings() {
     '#type' => 'textfield',
     '#title' => t('CAS debugging output filename'),
     '#default_value' => variable_get('cas_debugfile', ''),
-    '#size' => 30,
+    '#maxlength' => 255,
     '#description' => t("Leave empty if you don't want debugging output."),
   );
 
