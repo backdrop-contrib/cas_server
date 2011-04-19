@@ -147,25 +147,58 @@ class CasTestHelper extends DrupalWebTestCase {
   }
 
   /**
-   * Assert that the account been logged in.
+   * Assert that the user has logged in.
+   *
+   * @return
+   *  TRUE if the assertion succeeded, FALSE otherwise.
    */
   function assertLoggedIn($account) {
     $pass = $this->assertLink(t('Log out'), 0, t('CAS user %cas_name successfully logged in.', array('%cas_name' => $account->cas_name)), t('User login'));
     if ($pass) {
       $this->loggedInUser = $account;
     }
+    return $pass;
   }
 
   /**
    * Assert that the user has been logged out.
+   *
+   * @return
+   *  TRUE if the assertion succeeded, FALSE otherwise.
    */
   function assertLoggedOut() {
     $this->drupalGet('user');
     $pass = $this->assertField('name', t('Username field found.'), t('Logout'));
     $pass = $pass && $this->assertField('pass', t('Password field found.'), t('Logout'));
-      if ($pass) {
-        $this->loggedInUser = FALSE;
-      }
+    if ($pass) {
+      $this->loggedInUser = FALSE;
+    }
+    return $pass;
+  }
+
+  /**
+   * Assert the value of the token.
+   *
+   * @param $token
+   *   A token to evaluate for the current CAS user.
+   * @param $value
+   *   The expected value after the token is evaluated.
+   * @param $message
+   *   The message to display along with the assertion.
+   *
+   * @return
+   *  TRUE if the assertion succeeded, FALSE otherwise.
+   */
+  function assertToken($token, $value, $message = '') {
+    $options = array(
+      'query' => array(
+        'token' => $token,
+        'name' => $this->loggedInUser->cas_name,
+      ),
+    );
+    $path = 'cas_test/token';
+    $out = $this->drupalGet($path, $options);
+    return $this->assertEqual($out, $value, $message, 'Token');
   }
 
 }
@@ -372,6 +405,13 @@ class CasUserTestCase extends CasTestHelper {
     variable_set('cas_hide_email', TRUE);
     $this->drupalGet("user/$account->uid/edit");
     $this->assertNoField('mail', 'E-mail field is not present.');
+  }
+
+  function testNameToken() {
+    $account = $this->casCreateUser();
+    $this->casLogin($account);
+
+    $this->assertToken('[cas:name]', $account->cas_name);
   }
 }
 

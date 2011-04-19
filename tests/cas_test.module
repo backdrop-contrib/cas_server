@@ -99,6 +99,12 @@ function cas_test_menu() {
     'access callback' => TRUE,
     'type' => MENU_CALLBACK,
   );
+  $items['cas_test/token'] = array(
+    'page callback' => 'cas_test_token_evaluate',
+    'title' => 'CAS Token Test',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+  );
   return $items;
 }
 
@@ -270,4 +276,12 @@ function cas_test_single_sign_out($cas_name) {
   }
   unset($sso[$cas_name]);
   variable_set('cas_test_sso', $sso);
+}
+
+/**
+ * Evaluate the specified token.
+ */
+function cas_test_token_evaluate() {
+  print token_replace($_GET['token'], array('cas' => $_GET['name']));
+  exit(0);
 }
