@@ -70,10 +70,9 @@ function hook_cas_user_alter(&$cas_user) {
  * account properties. For example, modules may want to synchronize Drupal
  * user roles or profile information with LDAP properties.
  *
- * The 'cas_first_login' flag in $edit will be set to TRUE if the CAS user was
- * just registered and this is their first login. This is useful if you want
- * to only synchronize information when an account is created instead of on
- * every login.
+ * If you would like to synchronize information only for new accounts, you may
+ * examine the value of $account->login which will be 0 if the user has never
+ * logged in before.
  *
  * The 'cas_user' key in $edit contains all information returned from
  * hook_cas_user_alter().

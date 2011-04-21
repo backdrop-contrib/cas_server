@@ -117,17 +117,13 @@ function cas_login_check() {
     }
 
     $account = cas_user_load_by_name($cas_name);
-    $cas_first_login = FALSE;
 
     // Automatic user registration.
     if (!$account && $cas_user['register']) {
       // No account could be found and auto registration is enabled, so attempt
       // to register a new user.
-      if ($account = cas_user_register($cas_name)) {
-        // Record that the user was just registered.
-        $edit = array('cas_first_login' => TRUE);
-      }
-      else {
+      $account = cas_user_register($cas_name);
+      if (!$account) {
         // The account could not be created, set a message.
         if ($cas_force_login) {
           drupal_set_message(t('A new account could not be created for %cas_name. The username is already in use on this site.', array('%cas_name' => $cas_name)), 'error');
@@ -1143,7 +1139,6 @@ function cas_user_register($cas_name, $options = array()) {
   if (!empty($options['invoke_cas_user_presave'])) {
     // Populate $edit with some basic properties.
     $edit = array(
-      'cas_first_login' => TRUE,
       'cas_user' => array(
         'name' => $cas_name,
       ),
@@ -1154,7 +1149,6 @@ function cas_user_register($cas_name, $options = array()) {
 
     // Clean up extra variables before saving.
     unset($edit['cas_user']);
-    unset($edit['cas_first_login']);
 
     $account = user_save($account, $edit);
   }
