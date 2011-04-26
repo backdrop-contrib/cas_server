@@ -337,3 +337,14 @@ function cas_update_6304() {
     menu_link_save($link);
   }
 }
+
+/**
+ * Transform numeric block deltas to string block deltas.
+ */
+function cas_update_7000(&$sandbox) {
+  $renamed_deltas = array(
+    'cas' => array('0' => 'login'),
+  );
+  $moved_deltas = array();
+  update_fix_d7_block_deltas($sandbox, $renamed_deltas, $moved_deltas);
+}

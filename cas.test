@@ -724,3 +724,79 @@ class CasRequiredLoginTestCase extends CasTestHelper {
     $this->assertUrl('node');
   }
 }
+
+/**
+ * Tests the visibility and functionality of the CAS login block.
+ */
+class CasLoginBlockTestCase extends CasTestHelper {
+  public static function getInfo() {
+    return array(
+      'name' => 'CAS login block',
+      'description' => 'Tests the CAS login block.',
+      'group' => 'Central Authentication Service',
+    );
+  }
+
+  function setUp() {
+    parent::setUp();
+
+    // Enable the CAS login block.
+    $admin_user = $this->drupalCreateUser(array('administer blocks'));
+    $this->drupalLogin($admin_user);
+    $edit = array(
+      'blocks[user_login][region]' => '-1',
+      'blocks[cas_login][region]' => 'sidebar_first',
+    );
+    $this->drupalPost('admin/structure/block', $edit, t('Save blocks'));
+    $this->drupalLogout();
+  }
+
+  /**
+   * Asserts that the CAS login block is shown or not shown.
+   *
+   * @param $visible
+   *   Whether or not the CAS login block is expected to be shown.
+   *
+   * @return
+   *  TRUE if the assertion succeeded, FALSE otherwise.
+   */
+  function assertCasLoginBlock($visible) {
+    $xpath = '//div[@id=block-cas-0]/*';
+    $xpath = $this->buildXPathQuery('//div[@id=:id]/*', array(':id' => 'block-cas-login'));
+    if ($visible) {
+      return $this->assertFieldByXPath($xpath, NULL, t('CAS login block found.'));
+    }
+    else {
+      return $this->assertNoFieldByXPath($xpath, NULL, t('CAS login block not found.'));
+    }
+  }
+
+  /**
+   * Tests the visibility and functionality of the CAS login block.
+   */
+  function testCasLoginBlock() {
+    $account = $this->casCreateUser();
+    variable_set('cas_test_cas_user', array('name' => $account->cas_name));
+
+    // Verify that the block is shown on some pages, but not on others.
+    $this->drupalGet('');
+    $this->assertCasLoginBlock(TRUE);
+
+    $this->drupalGet('user');
+    $this->assertCasLoginBlock(FALSE);
+
+    $this->drupalGet('user/1');
+    $this->assertCasLoginBlock(TRUE);
+
+    // Log in using the login block, and verify redirection works.
+    $edit = array();
+    $submit = t(variable_get('cas_login_invite', CAS_LOGIN_INVITE_DEFAULT));
+
+    $this->drupalPost('', $edit, $submit);
+    $this->assertLoggedIn($account);
+    $this->assertUrl('node');
+
+    // Block should not be shown to logged in users.
+    $this->assertCasLoginBlock(FALSE);
+  }
+}

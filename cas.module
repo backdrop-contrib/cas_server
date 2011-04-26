@@ -663,24 +663,55 @@ function cas_logout() {
   drupal_goto($logout_url, $options);
 }
 
+/**
+ * Implements hook_block_info().
+ */
+function cas_block_info() {
+  $blocks['login']['info'] = t('CAS login');
+  // Not worth caching.
+  $blocks['login']['cache'] = DRUPAL_NO_CACHE;
 
-function cas_login_form($form_state) {
-  $form['submit'] = array('#type' => 'submit', '#value' => t('Log in via CAS'));
-  if (module_exists('persistent_login') && variable_get('cas_allow_rememberme', 0)) {
-    $form['remember'] = array(
-      '#type' => 'checkbox',
-      '#title' => t('Remember me'),
-      '#default_value' => 0,
-    );
-  }
-  return $form;
+  return $blocks;
 }
 
-function cas_login_form_submit($form, &$form_state) {
-  if ($form_state['values']['remember']) {
-    $_SESSION['cas_remember'] = 1;
+/**
+ * Implements hook_block_view().
+ */
+function cas_block_view($delta = '') {
+  global $user;
+
+  $block = array();
+
+  switch ($delta) {
+    case 'login':
+      // For usability's sake, avoid showing two login forms on one page.
+      if (!$user->uid && !(arg(0) == 'user' && !is_numeric(arg(1)))) {
+        $block['subject'] = t('User login');
+        $block['content'] = drupal_get_form('cas_login_block');
+      }
+      return $block;
   }
-  $form_state['redirect'] = 'cas';
+}
+
+/**
+ * Login form for the CAS login block.
+ */
+function cas_login_block($form) {
+  $form['#action'] = url('cas', array('query' => drupal_get_destination()));
+  $form['#id'] = 'cas-login-form';
+
+  $form['cas_login_redirection_message'] = array(
+    '#type' => 'item',
+    '#markup' => t(variable_get('cas_login_redir_message', CAS_LOGIN_REDIR_MESSAGE)),
+    '#weight' => -1,
+  );
+  $form['actions'] = array('#type' => 'actions');
+  $form['actions']['submit'] = array(
+    '#type' => 'submit',
+    '#value' => t(variable_get('cas_login_invite', CAS_LOGIN_INVITE_DEFAULT)),
+  );
+
+  return $form;
 }
 
 /**
