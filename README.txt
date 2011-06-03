@@ -1,3 +1,25 @@
+Introduction
+============
+
+Central Authentication Services (CAS) is a commonly used Single Sign-On
+protocol used by many universities and large organizations. For a brief
+introduction, please see the Jasig website: http://www.jasig.org/cas/about
+
+The Drupal CAS project has two modules:
+
+ * CAS:
+     Drupal acts as a CAS client, allowing users to authenticate with a
+     separate single sign-on CAS server.
+
+ * CAS Server:
+     Drupal acts as a CAS server.
+
+Do NOT enable both modules at the same time, as it may lead to unpredictable
+results.
+
+The following README.txt covers the CAS module only. If you are interested in
+the CAS Server module, please see README_SERVER.txt
+
 Requirements
 ============
 PHP 5 with the following modules:
@@ -31,6 +53,58 @@ Installation
   Depending on where and how you installed the phpCAS library, you may need
   to configure the path to CAS.php. The current library version will be
   displayed if the library is found.
+
+Configuration & Workflow
+========================
+
+For the purposes of this example, assume the following configuration:
+ * https://auth.example.com/cas - Your organization's CAS server
+ * http://site.example.com/ - This Drupal site using the CAS module
+
+Configure the CAS module:
+ * Log in to the Drupal site and navigate to Admin > Configuration > People >
+   Central Authentication Services.
+ * Point the CAS module at the CAS server:
+     - Hostname: auth.example.com
+     - Port: 443
+     - URI: /cas
+ * Configure user accounts:
+     - Decide if you want to automatically create Drupal user accounts for each
+       CAS-authenticated user. If you leave this option deselected, you will
+       have to manually add a paired Drupal account for every one of your users
+       in advance.
+     - Hide the Drupal password field if your users will never know (or need to
+       know) their Drupal password.
+ * Configure the login form(s):
+     - There are four ways that a user can start the CAS authentication
+       process:
+         1. Visit http://site.example.com/cas
+              This option is always available and is good for embedding a text
+              "Login" link in your theme. (See the note to themers below).
+
+         2. Click on a CAS Login menu link.
+              The menu item is disabled by default, but may be enabled in
+              Admin > Structure > Menus. You should find the link in the
+              "Navigation" menu.
+
+         3. Select the CAS login option on the Drupal login form.
+              The CAS login option needs to be added to the login form in the
+              CAS settings.
+
+         4. Use the CAS login block.
+              The CAS login block may be enabled in Admin > Structure > Blocks.
+
+Note to Themers
+===============
+
+You may want to include a text CAS "Login" link in your theme. If you simply
+link to "/cas", you will find that your users are redirected to the site
+frontpage after they are authenticated. To redirect your users to the page
+they were previously on, instead use:
+
+  <?php
+    print l(t('Login'), 'cas', array('query' => drupal_get_destination()));
+  ?>
 
 Upgrading from 6.x-2.x / Associating CAS usernames with Drupal users
 =====================================================================
