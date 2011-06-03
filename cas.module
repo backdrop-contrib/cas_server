@@ -1194,7 +1194,8 @@ function cas_user_register($cas_name, $options = array()) {
     $account = user_save($account, $edit);
   }
 
-  return $account;
+  // Reload to ensure that we have a fully populated user object.
+  return user_load($account->uid);
 }
 
 /**
