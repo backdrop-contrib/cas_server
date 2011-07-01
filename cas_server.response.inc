@@ -51,6 +51,7 @@ function theme_cas_service_validate_attributes($variables) {
         }
       }
       $output .= "</cas:attributes>\n";
+      break;
     case 'rubycas':
       $output .= "<cas:attraStyle>RubyCAS</cas:attraStyle>\n";
       foreach ($attributes as $name => $values) {
@@ -58,6 +59,7 @@ function theme_cas_service_validate_attributes($variables) {
           $output .= strtr("<cas:!name>!value</cas:!name>\n", array('!name' => $name, '!value' => $value));
         }
       }
+      break;
     case 'name-value':
       $output .= "<cas:attribute name='attraStyle' value='Name-Value' />\n";
       foreach ($attributes as $name => $values) {
@@ -65,6 +67,7 @@ function theme_cas_service_validate_attributes($variables) {
           $output .= strtr("<cas:attribute name='!name' value='!value' />\n", array('!name' => $name, '!value' => $value));
         }
       }
+      break;
   }
 
   return $output;
