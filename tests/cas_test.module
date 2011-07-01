@@ -6,26 +6,6 @@
  */
 
 /**
- * Implements hook_theme().
- */
-function cas_test_theme() {
-  return array(
-    'cas_service_validate_success' => array(
-      'variables' => array('name' => NULL, 'attributes' => NULL),
-      'file' => 'cas_test.response.inc',
-    ),
-    'cas_service_validate_attributes' => array(
-      'variables' => array('attributes' => NULL, 'style' => 'jasig'),
-      'file' => 'cas_test.response.inc',
-    ),
-    'cas_service_validate_failure' => array(
-      'variables' => array('ticket' => NULL, 'error_code' => NULL),
-      'file' => 'cas_test.response.inc',
-    ),
-  );
-}
-
-/**
  *
  */
 function cas_test_cas_phpcas_alter() {

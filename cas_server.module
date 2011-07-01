@@ -47,6 +47,26 @@ function cas_server_menu() {
   return $items;
 }
 
+/**
+ * Implements hook_theme().
+ */
+function cas_server_theme() {
+  return array(
+    'cas_service_validate_success' => array(
+      'variables' => array('name' => NULL, 'attributes' => NULL),
+      'file' => 'cas_server.response.inc',
+    ),
+    'cas_service_validate_attributes' => array(
+      'variables' => array('attributes' => NULL, 'style' => 'jasig'),
+      'file' => 'cas_server.response.inc',
+    ),
+    'cas_service_validate_failure' => array(
+      'variables' => array('ticket' => NULL, 'error_code' => NULL),
+      'file' => 'cas_server.response.inc',
+    ),
+  );
+}
+
 function cas_server_service_return() {
   global $user;
   $service = $_COOKIE[CAS_LOGIN_COOKIE];

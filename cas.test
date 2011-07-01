@@ -14,7 +14,8 @@ class CasTestHelper extends DrupalWebTestCase {
    * Creates an administrative user and downloads phpCAS.
    */
   function setUp($modules = array()) {
-    $modules = array_merge(array('cas', 'cas_test'), $modules);
+    // cas_test requires the CAS Server module.
+    $modules = array_merge(array('cas', 'cas_test', 'cas_server'), $modules);
     parent::setUp($modules);
 
     // Tests will fail unless clean URLs are enabled, due to an incompatibility

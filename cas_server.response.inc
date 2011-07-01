@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Response callbacks for the cas_test module.
+ * Response callbacks for the CAS Server module.
  */
 
 /**
