@@ -176,7 +176,7 @@ function cas_test_service_validate() {
     print theme('cas_service_validate_success', $cas_user);
   }
   else {
-    $cas_error = (!$ticket || !$service) ? 'INVALID_REQUEST' : 'INVALID_TICKET';
+    $error_code = (!$ticket || !$service) ? 'INVALID_REQUEST' : 'INVALID_TICKET';
     print theme('cas_service_validate_failure', array('ticket' => $ticket, 'error_code' => $error_code));
   }
   exit();

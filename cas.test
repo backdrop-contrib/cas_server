@@ -25,7 +25,7 @@ class CasTestHelper extends DrupalWebTestCase {
     $this->admin_user = $this->drupalCreateUser(array('administer users', 'administer cas'));
 
     // Download and extract in PHPCAS.
-    $this->downloadExtractPhpCas('1.2.1');
+    $this->downloadExtractPhpCas('1.2.2');
   }
 
   /**
