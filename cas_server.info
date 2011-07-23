@@ -1,5 +1,4 @@
 name = CAS Server
 package = Central Authentication Service
 core = 7.x
-files[] = cas_servier.module
 description = "Provides protocol compliant CAS Server"
