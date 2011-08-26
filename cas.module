@@ -1239,3 +1239,13 @@ function _cas_array_insert(&$array, $position, $insert_array) {
   $first_array = array_splice($array, 0, $position);
   $array = array_merge($first_array, $insert_array, $array);
 }
+
+/**
+ * Implements hook_views_api().
+ */
+function cas_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'cas') . '/includes/views',
+  );
+}
