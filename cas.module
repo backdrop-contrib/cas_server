@@ -147,7 +147,7 @@ function cas_login_check() {
       // Populate $edit with some basic properties.
       $edit['cas_user'] = $cas_user;
       $edit['roles'] = $account->roles + cas_roles();
-      if (module_exists('persistent_login') && $_SESSION['cas_remember']) {
+      if (module_exists('persistent_login') && !empty($_SESSION['cas_remember'])) {
         $edit['persistent_login'] = 1;
       }
       // Allow other modules to make their own custom changes.
