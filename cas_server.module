@@ -153,7 +153,7 @@ function cas_server_service_validate() {
           "     Ticket $ticket not recognized.\n" .
           "  </cas:authenticationFailure>" .
           "</cas:serviceResponse>";
-    watchdog('cas', 'User %name authentication failed!', array('%name' => $user_name));
+    watchdog('cas', 'Ticket %ticket for service %service not recognized.', array('%ticket' => $ticket, '%service' => $service));
   }
 }
 
