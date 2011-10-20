@@ -923,15 +923,15 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
         // The user is not an administrator, so selectively remove the e-mail
         // and password fields.
         if (variable_get('cas_hide_email', 0)) {
-          unset($form['account']['mail']);
+          $form['account']['mail']['#access'] = FALSE;
         }
         if (variable_get('cas_hide_password', 0)) {
-          unset($form['account']['pass']);
+          $form['account']['pass']['#access'] = FALSE;
 
           // Also remove requirement to validate your current password before
           // changing your e-mail address.
-          unset($form['account']['current_pass']);
-          unset($form['account']['current_pass_required_values']);
+          $form['account']['current_pass']['#access'] = FALSE;
+          $form['account']['current_pass_required_values']['#access'] = FALSE;
           $form['#validate'] = array_diff($form['#validate'], array('user_validate_current_pass'));
         }
       }
