@@ -46,7 +46,10 @@ Installation
 
   3. Libraries API installation. Install and enable the Libraries API module,
      available at http://drupal.org/project/libraries. Then extract phpCAS so
-     that sites/<site>/libraries/CAS/CAS.php exists.
+     that sites/<site>/libraries/CAS/CAS.php exists. For example:
+       $ cd sites/all/libraries
+       $ curl http://downloads.jasig.org/cas-clients/php/current.tgz | tar xz
+       $ mv CAS-* CAS
 
 * Go to Administer > Modules and enable this module.
 
