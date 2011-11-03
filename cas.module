@@ -761,6 +761,7 @@ function _cas_allow_check_for_login() {
     'IDBot',
     'eStyle',
     'Scrubby',
+    'gsa-crawler',
     );
   // Return on the first find.
   foreach ($crawlers as $c) {
