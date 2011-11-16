@@ -488,8 +488,7 @@ function cas_user_load($users) {
     $users[$record->uid]->cas_names[$record->aid] = $record->cas_name;
   }
   foreach (array_keys($users) as $uid) {
-    reset($users[$uid]->cas_names);
-    $users[$uid]->cas_name = current($users[$uid]->cas_names);
+    $users[$uid]->cas_name = reset($users[$uid]->cas_names);
   }
 }
 
@@ -903,18 +902,20 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
       if (user_access('administer users')) {
         // The user is an administrator, so add fields to allow changing the
         // CAS username(s) associated with the account.
+        $cas_names = $account->cas_names;
+        $aids = array_keys($cas_names);
+
         $element = array(
           '#type' => 'textfield',
           '#title' => t('CAS username'),
-          '#default_value' => $account->cas_name,
+          '#default_value' => array_shift($cas_names),
+          '#cas_user_aid' => array_shift($aids),
           '#description' => t('<a href="@url">Create, edit or delete</a> additional CAS usernames associated with this account.', array('@url' => url('user/' . $account->uid . '/cas'))),
-          '#element_validate' => array('_cas_user_profile_cas_name_element_validate'),
+          '#element_validate' => array('_cas_name_element_validate'),
           '#weight' => -9,
         );
 
         // See if any additional CAS usernames exist.
-        $cas_names = $account->cas_names;
-        array_shift($cas_names);
         if (!empty($cas_names)) {
           $element['#description'] .= ' <br />' . t('Other CAS usernames: %cas_names.', array('%cas_names' => implode(', ', $cas_names)));
         }
@@ -951,7 +952,7 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
           '#title' => t('CAS username'),
           '#default_value' => '',
           '#description' => t('If necessary, additional CAS usernames can be added after the account is created.'),
-          '#element_validate' => array('_cas_user_register_cas_name_element_validate'),
+          '#element_validate' => array('_cas_name_element_validate'),
           '#weight' => -9,
         );
       }
@@ -976,24 +977,34 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
 }
 
 /**
- * Form element 'cas_name' validator on user_profile_form().
+ * Form element 'cas_name' validator.
+ *
+ * If the element is disaplying an existing {cas_user} entry, set
+ * #cas_user_aid to the corresponing authmap id to avoid spurious
+ * validation errors.
  */
-function _cas_user_profile_cas_name_element_validate($element, &$form_state) {
-  if (!empty($element['#value'])) {
-    if (db_query("SELECT cas_name FROM {cas_user} WHERE cas_name = :cas_name AND uid <> :uid", (array(':cas_name' => $element['#value'], ':uid' => $form_state['build_info']['args'][0]->uid)))->fetchField()) {
-      form_set_error('cas_name', t('The CAS username is already in use on this site.'));
-    }
+function _cas_name_element_validate($element, &$form_state) {
+  if (empty($element['#value'])) {
+    // Nothing to validate if the name is empty.
+    return;
   }
-}
 
-/**
- * Form element 'cas_name' validator on user_register_form().
- */
-function _cas_user_register_cas_name_element_validate($element, &$form_state) {
-  if (!empty($element['#value'])) {
-    if (db_query("SELECT cas_name FROM {cas_user} WHERE cas_name = :cas_name", array(':cas_name' => $element['#value']))->fetchField()) {
-      form_set_error('cas_name', t('The CAS username is already in use on this site.'));
-    }
+  $query = db_select('cas_user')
+    ->fields('cas_user', array('uid'))
+    ->condition('cas_name', $element['#value']);
+
+  // If set, we ignore entries with a specified authmap id. This is used on
+  // the user/%user/edit page to not throw validation errors when we do not
+  // change the CAS username.
+  if (isset($element['#cas_user_aid'])) {
+    $query->condition('aid', $element['#cas_user_aid'], '<>');
+  }
+
+  $uid = $query->execute()->fetchField();
+
+  if ($uid !== FALSE) {
+    // Another user is using this CAS username.
+    form_set_error('cas_name', t('The CAS username is <a href="@edit-user-url">already in use</a> on this site.', array('@edit-user-url' => url('user/' . $uid . '/edit'))));
   }
 }
 
