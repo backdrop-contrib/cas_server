@@ -14,13 +14,16 @@ class CasTestHelper extends DrupalWebTestCase {
    * Creates an administrative user and downloads phpCAS.
    */
   function setUp() {
-    // Since this is a base class for many test cases, support the same
-    // flexibility that DrupalWebTestCase::setUp() has for the modules to be
-    // passed in as either an array or a variable number of string arguments.
+    // Install modules needed for this test. This could have been passed in as
+    // either a single array argument or a variable number of string arguments.
+    // @todo Remove this compatibility layer in Drupal 8, and only accept
+    // $modules as a single array argument.
     $modules = func_get_args();
     if (isset($modules[0]) && is_array($modules[0])) {
       $modules = $modules[0];
     }
+
+    // cas_test requires the CAS Server module.
     $modules = array_merge(array('cas', 'cas_test', 'cas_server'), $modules);
     parent::setUp($modules);
 
