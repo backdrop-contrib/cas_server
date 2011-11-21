@@ -27,152 +27,153 @@ function cas_init() {
     return;
   }
   _cas_single_sign_out_check();
-  cas_login_check();
+  $force_authentication = _cas_force_login();
+  $check_authentication = _cas_allow_check_for_login();
+  if ($force_authentication || $check_authentication) {
+    cas_login_check($force_authentication);
+  }
 }
 
 /**
- * Checks to see if the user needs to be logged in
+ * Checks to see if the user needs to be logged in.
  *
+ * @param $force_authentication
+ *   If TRUE, require that the user be authenticated with the CAS server
+ *   before proceeding. Otherwise, check with the CAS server to see if the
+ *   user is already logged in.
  */
-function cas_login_check() {
+function cas_login_check($force_authentication = TRUE) {
   global $user;
   if ($user->uid) {
     //Don't Login  because we already are
     return;
   }
 
-  // Determine whether we should check for long
-  $cas_force_login = _cas_force_login();
+  if (!cas_phpcas_load()) {
+    // No need to print a message, as the user will already see the failed
+    // include_once calls.
+    return;
+  }
 
-  if ($cas_force_login || _cas_allow_check_for_login()) {
+  // Start a drupal session
+  drupal_session_start();
+  _cas_single_sign_out_save_ticket();  // We use this later for CAS 3 logoutRequests
 
-    if (!cas_phpcas_load()) {
-      // No need to print a message, as the user will already see the failed
-      // include_once calls.
+  // Initialize phpCAS.
+  cas_phpcas_init();
+
+  // We're going to try phpCAS auth test
+  if ($force_authentication) {
+    phpCAS::forceAuthentication();
+  }
+  else {
+    $logged_in = phpCAS::checkAuthentication();
+    // Set the login tested cookie
+    setcookie('cas_login_checked', 'true');
+
+    // We're done cause we're not logged in.
+    if (!$logged_in) {
       return;
-    }
-
-    // Start a drupal session
-    drupal_session_start();
-    _cas_single_sign_out_save_ticket();  // We use this later for CAS 3 logoutRequests
-
-    // Initialize phpCAS.
-    cas_phpcas_init();
-
-    // We're going to try phpCAS auth test
-    if (!$cas_force_login) {
-      $logged_in = phpCAS::checkAuthentication();
-      // Set the login tested cookie
-      setcookie('cas_login_checked', 'true');
-
-      // We're done cause we're not logged in.
-      if (!$logged_in) {
-        return;
-      }
-    }
-    else {
-      phpCAS::forceAuthentication();
-    }
-
-    // Build the cas_user object and allow modules to alter it.
-    $cas_user = array(
-      'name' => phpCAS::getUser(),
-      'login' => TRUE,
-      'register' => variable_get('cas_user_register', TRUE),
-      'attributes' => cas_phpcas_attributes(),
-    );
-    drupal_alter('cas_user', $cas_user);
-
-    // Bail out if a module denied login access for this user or unset the user
-    // name.
-    if (empty($cas_user['login']) || empty($cas_user['name'])) {
-      // Only set a warning if we forced login.
-      if ($cas_force_login) {
-        drupal_set_message(t('The user account %name is not available on this site.', array('%name' => $cas_name)), 'error');
-      }
-      return;
-    }
-
-    // Proceed with the login process, using the altered CAS username.
-    $cas_name = $cas_user['name'];
-
-    // blocked user check
-    $blocked = FALSE;
-    if (_cas_external_user_is_blocked($cas_name)) {
-        $blocked = 'The username %cas_name has been blocked.';
-    }
-    // @todo The D7 equivalent here must have been renamed.
-    // elseif (drupal_is_denied('user', $cas_name)) {
-    //   // denied by access controls
-    //   return 'The name %cas_name is a reserved username.';
-    // }
-
-    if ($blocked) {
-      // Only display error messages only if the user intended to log in.
-      if ($cas_force_login) {
-        watchdog('cas', $blocked, array('%cas_name' => $cas_name), WATCHDOG_WARNING);
-        drupal_set_message(t($blocked, array('%cas_name' => $cas_name)), 'error');
-      }
-      return;
-    }
-
-    $account = cas_user_load_by_name($cas_name);
-
-    // Automatic user registration.
-    if (!$account && $cas_user['register']) {
-      // No account could be found and auto registration is enabled, so attempt
-      // to register a new user.
-      $account = cas_user_register($cas_name);
-      if (!$account) {
-        // The account could not be created, set a message.
-        if ($cas_force_login) {
-          drupal_set_message(t('A new account could not be created for %cas_name. The username is already in use on this site.', array('%cas_name' => $cas_name)), 'error');
-        }
-        return;
-      }
-    }
-
-    // final check to make sure we have a good user
-    if ($account && $account->uid > 0) {
-      // Save the altered CAS name for future use.
-      $_SESSION['cas_name'] = $cas_name;
-
-      $cas_first_login = !$account->login;
-
-      // Save single sign out information
-      if (!empty($_SESSION['cas_ticket'])) {
-        _cas_single_sign_out_save_token($account);
-      }
-
-      // Populate $edit with some basic properties.
-      $edit['cas_user'] = $cas_user;
-      $edit['roles'] = $account->roles + cas_roles();
-      if (module_exists('persistent_login') && !empty($_SESSION['cas_remember'])) {
-        $edit['persistent_login'] = 1;
-      }
-      // Allow other modules to make their own custom changes.
-      cas_user_module_invoke('presave', $edit, $account);
-
-      // Save the user account and log the user in.
-      $user = user_save($account, $edit);
-      user_login_finalize($edit);
-
-      drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
-      if (!empty($edit['persistent_login'])) {
-        drupal_set_message(t('You will remain logged in on this computer even after you close your browser.'));
-      }
-
-      cas_login_page($cas_first_login);
-    }
-    else {
-      $user = drupal_anonymous_user();
-      // Only display error messages only if the user intended to log in.
-      if ($cas_force_login) {
-        drupal_set_message(t('No account found for %cas_name.', array('%cas_name' => $cas_name)));
-      }
     }
   }
-  // End if user is already logged in else
+
+  // Build the cas_user object and allow modules to alter it.
+  $cas_user = array(
+    'name' => phpCAS::getUser(),
+    'login' => TRUE,
+    'register' => variable_get('cas_user_register', TRUE),
+    'attributes' => cas_phpcas_attributes(),
+  );
+  drupal_alter('cas_user', $cas_user);
+
+  // Bail out if a module denied login access for this user or unset the user
+  // name.
+  if (empty($cas_user['login']) || empty($cas_user['name'])) {
+    // Only set a warning if we forced login.
+    if ($force_authentication) {
+      drupal_set_message(t('The user account %name is not available on this site.', array('%name' => $cas_name)), 'error');
+    }
+    return;
+  }
+
+  // Proceed with the login process, using the altered CAS username.
+  $cas_name = $cas_user['name'];
+
+  // blocked user check
+  $blocked = FALSE;
+  if (_cas_external_user_is_blocked($cas_name)) {
+      $blocked = 'The username %cas_name has been blocked.';
+  }
+  // @todo The D7 equivalent here must have been renamed.
+  // elseif (drupal_is_denied('user', $cas_name)) {
+  //   // denied by access controls
+  //   return 'The name %cas_name is a reserved username.';
+  // }
+
+  if ($blocked) {
+    // Only display error messages only if the user intended to log in.
+    if ($force_authentication) {
+      watchdog('cas', $blocked, array('%cas_name' => $cas_name), WATCHDOG_WARNING);
+      drupal_set_message(t($blocked, array('%cas_name' => $cas_name)), 'error');
+    }
+    return;
+  }
+
+  $account = cas_user_load_by_name($cas_name);
+
+  // Automatic user registration.
+  if (!$account && $cas_user['register']) {
+    // No account could be found and auto registration is enabled, so attempt
+    // to register a new user.
+    $account = cas_user_register($cas_name);
+    if (!$account) {
+      // The account could not be created, set a message.
+      if ($force_authentication) {
+        drupal_set_message(t('A new account could not be created for %cas_name. The username is already in use on this site.', array('%cas_name' => $cas_name)), 'error');
+      }
+      return;
+    }
+  }
+
+  // final check to make sure we have a good user
+  if ($account && $account->uid > 0) {
+    // Save the altered CAS name for future use.
+    $_SESSION['cas_name'] = $cas_name;
+
+    $cas_first_login = !$account->login;
+
+    // Save single sign out information
+    if (!empty($_SESSION['cas_ticket'])) {
+      _cas_single_sign_out_save_token($account);
+    }
+
+    // Populate $edit with some basic properties.
+    $edit['cas_user'] = $cas_user;
+    $edit['roles'] = $account->roles + cas_roles();
+    if (module_exists('persistent_login') && !empty($_SESSION['cas_remember'])) {
+      $edit['persistent_login'] = 1;
+    }
+    // Allow other modules to make their own custom changes.
+    cas_user_module_invoke('presave', $edit, $account);
+
+    // Save the user account and log the user in.
+    $user = user_save($account, $edit);
+    user_login_finalize($edit);
+
+    drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
+    if (!empty($edit['persistent_login'])) {
+      drupal_set_message(t('You will remain logged in on this computer even after you close your browser.'));
+    }
+
+    cas_login_page($cas_first_login);
+  }
+  else {
+    $user = drupal_anonymous_user();
+    // Only display error messages only if the user intended to log in.
+    if ($force_authentication) {
+      drupal_set_message(t('No account found for %cas_name.', array('%cas_name' => $cas_name)));
+    }
+  }
 }
 
 /**
