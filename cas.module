@@ -21,16 +21,24 @@ define('CAS_EXCLUDE', 'services/*');
  * Traps a page load to see if authentication is required.
  */
 function cas_init() {
+  global $user;
+
   if (module_exists('cas_test') && arg(0) == 'cas_test') {
     // We are destined for a page handled by the cas_test module, so do not
     // do any processing here. Necessary for CAS gateway tests.
     return;
   }
+
+  // Process a single-sign out request.
   _cas_single_sign_out_check();
-  $force_authentication = _cas_force_login();
-  $check_authentication = _cas_allow_check_for_login();
-  if ($force_authentication || $check_authentication) {
-    cas_login_check($force_authentication);
+
+  // If a user is not logged in, consider using CAS authentication.
+  if (!$user->uid) {
+    $force_authentication = _cas_force_login();
+    $check_authentication = _cas_allow_check_for_login();
+    if ($force_authentication || $check_authentication) {
+      cas_login_check($force_authentication);
+    }
   }
 }
 
