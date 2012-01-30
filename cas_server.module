@@ -67,6 +67,22 @@ function cas_server_theme() {
   );
 }
 
+/**
+ * Implements hook_cas_server_user_attributes().
+ *
+ * Returns the user's roles.
+ */
+function cas_server_cas_server_user_attributes($account, $service) {
+  return array(
+    'uid'           => $account->uid,
+    'mail'          => $account->mail,
+    'created'       => $account->created,
+    'timezone'      => $account->timezone,
+    'language'      => $account->language,
+    'drupal_roles'  => $account->roles,
+  );
+}
+
 function cas_server_service_return() {
   global $user;
   $service = isset($_COOKIE[CAS_LOGIN_COOKIE]) ? $_COOKIE[CAS_LOGIN_COOKIE] : '';
@@ -142,19 +158,17 @@ function cas_server_service_validate() {
   header('Content-type:', 'text/xml');
   if ($user_name) {
     //@TODO Generate proxy granting ticket
-    print "<cas:serviceResponse xmlns:cas='http://www.yale.edu/tp/cas'>\n" .
-          "  <cas:authenticationSuccess>\n" .
-          "    <cas:user>$user_name</cas:user>\n" .
-          "  </cas:authenticationSuccess>\n" .
-          "</cas:serviceResponse>\n";
+    $account = user_load_by_name($user_name);
+
+    // Generate a list of attributes to return.
+    $attributes = module_invoke_all('cas_server_user_attributes', $account, $service, $ticket);
+    drupal_alter('cas_server_user_attributes', $attributes, $account, $service, $ticket);
+
+    print theme('cas_service_validate_success', array('name' => $user_name, 'attributes' => $attributes));
     watchdog('cas', 'User %name CAS sucessully authenticated.', array('%name' => $user_name));
   }
   else {
-    print "<cas:serviceReponse xmlns:cas='http://www.yale.edu/tp/cas'>\n" .
-          "  <cas:authenticationFailure code=\"$cas_error\">\n" .
-          "     Ticket $ticket not recognized.\n" .
-          "  </cas:authenticationFailure>" .
-          "</cas:serviceResponse>";
+    print theme('cas_service_validate_failure', array('ticket' => $ticket, 'error_code' => $cas_error));
     watchdog('cas', 'Ticket %ticket for service %service not recognized.', array('%ticket' => $ticket, '%service' => $service));
   }
 }
