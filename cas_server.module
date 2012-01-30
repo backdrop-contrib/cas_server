@@ -69,7 +69,7 @@ function cas_server_theme() {
 
 function cas_server_service_return() {
   global $user;
-  $service = $_COOKIE[CAS_LOGIN_COOKIE];
+  $service = isset($_COOKIE[CAS_LOGIN_COOKIE]) ? $_COOKIE[CAS_LOGIN_COOKIE] : '';
   if ($service && $user->uid) {
     $ticket = _cas_server_save_ticket($user->uid, $service);
     setcookie(CAS_LOGIN_COOKIE, "", -3600);
@@ -85,21 +85,23 @@ function cas_server_login() {
   // Set login cookie so that we know we're in the process of logging in
   global $user;
   $output='';
+  $service = isset($_REQUEST['service']) ? $_REQUEST['service'] : '';
+  $gateway = isset($_REQUEST['gateway']);
   if ($user->uid) {
-    if ($_GET['service']) {
-      $_COOKIE[CAS_LOGIN_COOKIE] = $_REQUEST['service'];
+    if ($service) {
+      $_COOKIE[CAS_LOGIN_COOKIE] = $service;
     }
     $output=t('You have successfully logged into CAS');
     cas_server_service_return();
   }
   else {
-    if (isset($_GET['gateway']) && isset($_GET['service'])) {
-      drupal_goto($_GET['service']);
+    if ($gateway && $service) {
+      drupal_goto($service);
     }
     else {
       // Redirect to user login
-      if ($_GET['service']) {
-        setcookie(CAS_LOGIN_COOKIE, $_REQUEST['service']);
+      if ($service) {
+        setcookie(CAS_LOGIN_COOKIE, $service);
       }
       $output .= l(t('Login'), 'user', array('query' => array('destination' => 'cas/login')));
       drupal_goto('user', array('query' => array('destination' => 'cas/login')));
@@ -114,8 +116,8 @@ function cas_server_login() {
  */
 function cas_server_validate() {
   //Obtain the ticket from the url and validate it.
-  $ticket = $_GET['ticket'];
-  $service = $_GET['service'];
+  $ticket = isset($_REQUEST['ticket']) ? $_REQUEST['ticket'] : '';
+  $service = isset($_REQUEST['service']) ? $_REQUEST['service'] : '';
   $user_name = _cas_server_validate($service, $ticket);
   if ($user_name) {
     print "yes\n";
@@ -131,10 +133,10 @@ function cas_server_validate() {
  * Returns data in xml
  */
 function cas_server_service_validate() {
-  $ticket = $_GET['ticket'];
-  $service = $_GET['service'];
+  $ticket = isset($_REQUEST['ticket']) ? $_REQUEST['ticket'] : '';
+  $service = isset($_REQUEST['service']) ? $_REQUEST['service'] : '';
   $user_name = _cas_server_validate($service, $ticket);
-  if (!$user_name ) $cas_error='INVALID_TICKET';
+  if (!$user_name) $cas_error='INVALID_TICKET';
   if (!$ticket || !$service) $cas_error='INVALID_REQUEST';
 
   header('Content-type:', 'text/xml');
@@ -213,8 +215,8 @@ function cas_server_logout() {
   session_destroy();
 
   $output = '<p>' . t('You have been logged out successfully.') . '</p>';
-  if (isset($_GET['url'])) {
-    $output .= '<p>' . l(t('Continue'), $_GET['url']) . '</p>';
+  if (isset($_REQUEST['url'])) {
+    $output .= '<p>' . l(t('Continue'), $_REQUEST['url']) . '</p>';
   }
   return $output;
 }
