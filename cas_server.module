@@ -198,15 +198,22 @@ function _cas_server_save_ticket($uid, $service) {
 }
 
 /**
- * Cas Logout
+ * Menu callback; triggers a CAS logout.
+ *
  * @TODO: Implement single sign out support
  */
 function cas_server_logout() {
-  // Destroy the current session:
+  global $user;
+
+  watchdog('user', 'Session closed for %name.', array('%name' => $user->name));
+
+  module_invoke_all('user_logout', $user);
+
+  // Destroy the current session, and reset $user to the anonymous user.
   session_destroy();
-  module_invoke_all('user', 'logout', NULL, $user);
-  $output = t('<p>You have been logged out successfully</p>');
-  if ($_GET['url'])  {
+
+  $output = '<p>' . t('You have been logged out successfully.') . '</p>';
+  if (isset($_GET['url'])) {
     $output .= '<p>' . l(t('Continue'), $_GET['url']) . '</p>';
   }
   return $output;
