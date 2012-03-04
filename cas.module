@@ -634,9 +634,22 @@ function cas_login_page($cas_first_login = FALSE) {
 }
 
 /**
- * Logs a user out of drupal and then out of cas
+ * Logs a user out of Drupal and then out of CAS.
+ *
+ * This function does not return, but instead immediately redirects the user
+ * to the CAS server to complete the CAS logout process.
+ *
+ * Other modules intending to call this from their implementation of
+ * hook_user_logout() will need to pass $invoke_hook = FALSE to avoid an
+ * infinite recursion. WARNING: since this function does not return, any
+ * later implementations of hook_user_logout() will not run. You may wish to
+ * adjust the hook execution order using hook_module_implements_alter().
+ *
+ * @param $invoke_hook
+ *   If TRUE, invoke hook_user_logout() and save a watchdog mesage indicating
+ *   that the user has logged out.
  */
-function cas_logout() {
+function cas_logout($invoke_hook = TRUE) {
   global $user;
 
   // Build the logout URL.
@@ -666,8 +679,10 @@ function cas_logout() {
   }
 
   // Mimic user_logout().
-  watchdog('user', 'Session closed for %name.', array('%name' => $user->name));
-  module_invoke_all('user_logout', $user);
+  if ($invoke_hook) {
+    watchdog('user', 'Session closed for %name.', array('%name' => $user->name));
+    module_invoke_all('user_logout', $user);
+  }
   session_destroy();
 
   // Force redirection in drupal_goto().
