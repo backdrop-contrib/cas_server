@@ -20,6 +20,8 @@
  *
  * @return
  *   An associative array of CAS attributes for the user.
+ *
+ * @see hook_cas_server_user_attributes_alter()
  */
 function hook_cas_server_user_attributes($account, $service, $ticket) {
   $attributes = array();
@@ -43,8 +45,18 @@ function hook_cas_server_user_attributes($account, $service, $ticket) {
 /**
  * Alter additional CAS attributes to return when a user is authenticated.
  *
- * Called after hook_cas_server_user_attributes().
+ * @param $attributes
+ *   CAS attributes, as constructed by hook_cas_server_user_attributes().
+ * @param $account
+ *   The user being logged in.
+ * @param $context
+ *   An associative array containing the following key-value pairs, matching the
+ *   arguments received by hook_cas_server_user_attributes():
+ *   - "service": The service URL of the site the user is logging in to.
+ *   - "ticket": The login ticket the user provided.
+ *
+ * @see hook_cas_server_user_attributes()
  */
-function hook_cas_server_user_attributes_alter(&$attributes, $account, $service, $ticket) {
+function hook_cas_server_user_attributes_alter(&$attributes, $account, $context) {
   //...
 }

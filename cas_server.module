@@ -162,7 +162,13 @@ function cas_server_service_validate() {
 
     // Generate a list of attributes to return.
     $attributes = module_invoke_all('cas_server_user_attributes', $account, $service, $ticket);
-    drupal_alter('cas_server_user_attributes', $attributes, $account, $service, $ticket);
+
+    // Let other modules alter the list of attributes.
+    $context = array(
+      'service' => $service,
+      'ticket' => $ticket,
+    );
+    drupal_alter('cas_server_user_attributes', $attributes, $account, $context);
 
     print theme('cas_service_validate_success', array('name' => $user_name, 'attributes' => $attributes));
     watchdog('cas', 'User %name CAS sucessully authenticated.', array('%name' => $user_name));
