@@ -83,7 +83,7 @@ function theme_cas_service_validate_attributes($variables) {
 function theme_cas_service_validate_failure($variables) {
   $ticket = $variables['ticket'];
   $error_code = $variables['error_code'];
-  $output = "<cas:serviceReponse xmlns:cas='http://www.yale.edu/tp/cas'>\n";
+  $output = "<cas:serviceResponse xmlns:cas='http://www.yale.edu/tp/cas'>\n";
   $output .= "<cas:authenticationFailure code=\"$error_code\">\n";
   $output .= "Ticket $ticket not recognized.\n";
   $output .= "</cas:authenticationFailure>\n";
