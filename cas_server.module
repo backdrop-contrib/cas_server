@@ -64,6 +64,10 @@ function cas_server_theme() {
       'variables' => array('ticket' => NULL, 'error_code' => NULL),
       'file' => 'cas_server.response.inc',
     ),
+    'cas_service_logout_request' => array(
+      'variables' => array('ticket' => NULL, 'date' => NULL, 'id' => NULL),
+      'file' => 'cas_server.response.inc',
+    ),
   );
 }
 
@@ -195,7 +199,8 @@ function _cas_server_validate($service, $ticket) {
       $user_name = $ticket_data->name;
     }
   }
-  db_delete('cas_server_tickets')
+  db_update('cas_server_tickets')
+    ->fields(array('valid' => 0))
     ->condition('ticket', $ticket)
     ->execute();
 
@@ -211,7 +216,7 @@ function _cas_server_save_ticket($uid, $service) {
   // Generate the ticket
   $time = REQUEST_TIME;
   $ticket = 'ST-' . user_password();
-  $ticket_data = array('uid' => $uid, 'service' => $service, 'ticket' => $ticket, 'timestamp' => $time);
+  $ticket_data = array('uid' => $uid, 'service' => $service, 'ticket' => $ticket, 'timestamp' => $time, 'valid' => 1);
   // Save the ticket to the db
   if ($uid && $service) {
     db_insert('cas_server_tickets')->fields($ticket_data)->execute();
@@ -221,8 +226,6 @@ function _cas_server_save_ticket($uid, $service) {
 
 /**
  * Menu callback; triggers a CAS logout.
- *
- * @TODO: Implement single sign out support
  */
 function cas_server_logout() {
   global $user;
@@ -239,4 +242,50 @@ function cas_server_logout() {
     $output .= '<p>' . l(t('Continue'), $_REQUEST['url']) . '</p>';
   }
   return $output;
+}
+
+/**
+ * Send CAS a logout requests for each of the user's CAS tickets.
+ *
+ * @param $account
+ *   The user for whom to send CAS logout requests.
+ */
+function cas_server_logout_clients($account) {
+   $result = db_query("SELECT service, ticket, valid FROM {cas_server_tickets} WHERE uid= :uid", array(':uid' => $account->uid));
+    if ($result !== FALSE) {
+      $expired_tickets = array();
+      foreach ($result as $client) {
+        $expired_tickets[] = $client->ticket;
+        if (!$client->valid)  {
+          $id = 'LR-' . user_password();
+          $date = date('c');
+          $logout_request = theme('cas_service_logout_request', array('id' => $id, 'date' => $date, 'ticket' => $client->ticket));
+          // Send POST request
+          $reponse = drupal_http_request(
+            $client->service,
+            array(
+              'headers' => array('Content-Type' => 'application/x-www-form-urlencoded'),
+              'method' =>  'POST',
+              'data' => 'logoutRequest=' . urlencode($logout_request),
+            )
+          );
+          if (@$reponse->error) {
+            watchdog('error', 'Error in CAS logout Request - %code : %message', array('%code' => $reponse->code, '%error' => $response->error));
+          }
+        }
+        // Remove ticket
+      }
+      if ($expired_tickets) {
+        db_delete('cas_server_tickets')
+          ->condition('ticket', $expired_tickets, 'IN')
+          ->execute();
+      }
+    }
+}
+
+/**
+ * Implements hook_user_logout().
+ */
+function cas_server_user_logout($account) {
+  cas_server_logout_clients($account);
 }
