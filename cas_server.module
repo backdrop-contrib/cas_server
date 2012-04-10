@@ -193,7 +193,7 @@ function _cas_server_validate($service, $ticket) {
   // Look up the ticket
   $user_name='';
   $ticket_info=array(':service' => $service, ':ticket' => $ticket);
-  $result = db_query_range("SELECT u.name FROM {cas_server_tickets} t JOIN {users} u ON t.uid=u.uid  WHERE t.service = :service and t.ticket = :ticket", 0, 1, $ticket_info);
+  $result = db_query_range("SELECT u.name FROM {cas_server_tickets} t JOIN {users} u ON t.uid=u.uid  WHERE t.service = :service and t.ticket = :ticket AND valid=1", 0, 1, $ticket_info);
   if ($result !== FALSE) {
     foreach ($result as $ticket_data) {
       $user_name = $ticket_data->name;
