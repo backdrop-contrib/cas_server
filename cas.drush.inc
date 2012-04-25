@@ -42,7 +42,8 @@ function cas_drush_user_create($cas_name) {
   $account = cas_user_load_by_name($cas_name);
   if ($account === FALSE) {
     if (!drush_get_context('DRUSH_SIMULATE')) {
-      $new_user_object = cas_user_register($cas_name);
+      $options = array('invoke_cas_user_presave' => TRUE);
+      $new_user_object = cas_user_register($cas_name, $options);
       if ($new_user_object !== FALSE) {
         _drush_user_print_info($new_user_object->uid);
         // return $new_user_object->uid;
