@@ -623,14 +623,17 @@ function cas_user_load_by_name($cas_name, $alter = FALSE) {
 function cas_login_page($cas_first_login = FALSE) {
   global $user;
   $destination = '';
+  $query = array();
   // If it is the user's first CAS login and initial login redirection is enabled, go to the set page
   if ($cas_first_login && variable_get('cas_first_login_destination', '')) {
     $destination = variable_get('cas_first_login_destination', '');
+    if (isset($_GET['destination']))
+      $query['destination'] = $_GET['destination'];
     unset($_GET['destination']);
   }
 
   // Respect the query string, if transmitted.
-  drupal_goto($destination);
+  drupal_goto($destination, array('query' => $query));
 }
 
 /**
