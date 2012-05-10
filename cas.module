@@ -657,8 +657,6 @@ function cas_logout($invoke_hook = TRUE) {
 
   // Build the logout URL.
   cas_phpcas_init();
-  $logout_url = phpCAS::getServerLogoutURL();
-  $options = array();
 
   if (isset($_GET['destination']) && !url_is_external($_GET['destination'])) {
     // Add destination override so that a destination can be specified on the
@@ -674,11 +672,13 @@ function cas_logout($invoke_hook = TRUE) {
   //Make it an absolute url.  This will also convert <front> to the front page.
   if ($destination) {
     $destination_url = url($destination, array('absolute' => TRUE));
-    $options['query'] = array(
-      'destination' => $destination_url,
+    $options = array(
       'service' => $destination_url,
       'url' => $destination_url,
     );
+  }
+  else {
+    $options = array();
   }
 
   // Mimic user_logout().
@@ -686,11 +686,9 @@ function cas_logout($invoke_hook = TRUE) {
     watchdog('user', 'Session closed for %name.', array('%name' => $user->name));
     module_invoke_all('user_logout', $user);
   }
-  session_destroy();
 
-  // Force redirection in drupal_goto().
-  unset($_GET['destination']);
-  drupal_goto($logout_url, $options);
+  // phpCAS automatically calls session_destroy().
+  phpCAS::logout($options);
 }
 
 /**
