@@ -261,7 +261,7 @@ function cas_server_logout_clients($account) {
           $date = date('c');
           $logout_request = theme('cas_service_logout_request', array('id' => $id, 'date' => $date, 'ticket' => $client->ticket));
           // Send POST request
-          $reponse = drupal_http_request(
+          $response = drupal_http_request(
             $client->service,
             array(
               'headers' => array('Content-Type' => 'application/x-www-form-urlencoded'),
@@ -269,8 +269,8 @@ function cas_server_logout_clients($account) {
               'data' => 'logoutRequest=' . urlencode($logout_request),
             )
           );
-          if (@$reponse->error) {
-            watchdog('error', 'Error in CAS logout Request - %code : %message', array('%code' => $reponse->code, '%error' => $response->error));
+          if (@$response->error) {
+            watchdog('error', 'Error in CAS logout Request - %code : %message', array('%code' => $response->code, '%error' => $response->error));
           }
         }
         // Remove ticket
