@@ -15,7 +15,7 @@
  */
 function theme_cas_service_validate_success($variables) {
   $cas_name = $variables['name'];
-  $output .= "<cas:serviceResponse xmlns:cas='http://www.yale.edu/tp/cas'>\n";
+  $output = "<cas:serviceResponse xmlns:cas='http://www.yale.edu/tp/cas'>\n";
   $output .= "<cas:authenticationSuccess>\n";
   $output .= "<cas:user>$cas_name</cas:user>\n";
   $output .= theme('cas_service_validate_attributes', $variables);
