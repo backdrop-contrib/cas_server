@@ -35,7 +35,7 @@ class CasTestHelper extends DrupalWebTestCase {
     $this->admin_user = $this->drupalCreateUser(array('administer users', 'administer cas'));
 
     // Download and extract in PHPCAS.
-    $this->downloadExtractPhpCas('1.2.2');
+    $this->downloadExtractPhpCas('1.3.1');
   }
 
   /**
@@ -77,16 +77,6 @@ class CasTestHelper extends DrupalWebTestCase {
       // Extract the files.
       $archiver = archiver_get_archiver($local_archive);
       $archiver->extract($simpletest_cache);
-      // Work around issue https://issues.jasig.org/browse/PHPCAS-105.
-      // @see http://drupal.org/node/1120034
-      switch ($version) {
-        case '1.1.3':
-          system_retrieve_file('http://drupal.org/files/issues/CAS-1.1.3-CAS-client.txt', $cas_library_dir . '/CAS/client.php', FALSE, FILE_EXISTS_REPLACE);
-          break;
-        case '1.2.1':
-          system_retrieve_file('http://drupal.org/files/issues/CAS-1.2.1-CAS-client_0.txt', $cas_library_dir . '/CAS/client.php', FALSE, FILE_EXISTS_REPLACE);
-          break;
-      }
     }
     if (function_exists('sem_get')) {
       sem_release($semaphore);
