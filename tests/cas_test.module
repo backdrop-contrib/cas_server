@@ -103,7 +103,7 @@ function cas_test_login() {
 
   if ($cas_user) {
     if (!is_array($cas_user)) {
-      $cas_user = array('name' => $cas_user);
+      $cas_user = array('name' => $cas_user, 'attributes' => array());
     }
     // Generate a ticket and redirect to the service URL with the login ticket.
     $ticket = _cas_test_ticket_generate($service, $cas_user);
