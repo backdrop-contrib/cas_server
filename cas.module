@@ -1047,7 +1047,7 @@ function cas_login_submit(&$form, &$form_state) {
 
 function _cas_single_sign_out_check() {
   if (isset($_POST["logoutRequest"])) {
-    $cas_logout_request_xml_string = utf8_encode($_POST["logoutRequest"]);     // it's important!
+    $cas_logout_request_xml_string = utf8_encode(urldecode($_POST["logoutRequest"]));
     $cas_logout_request_xml = new SimpleXMLElement($cas_logout_request_xml_string);
     if (is_object($cas_logout_request_xml)) {
       $namespaces = $cas_logout_request_xml->getNameSpaces();
