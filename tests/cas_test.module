@@ -234,7 +234,7 @@ function _cas_test_ticket_validate($service, $ticket) {
  *
  * @param $cas_user
  */
-function cas_test_single_sign_out($cas_name) {
+function cas_test_single_sign_out($cas_name, $double_encode=FALSE) {
   $sso = variable_get('cas_test_sso', array());
   foreach ($sso[$cas_name] as $service => $tickets) {
     foreach ($tickets as $ticket) {
@@ -242,6 +242,11 @@ function cas_test_single_sign_out($cas_name) {
       $data = array(
         'logoutRequest' => t("<samlp:LogoutRequest ID=\"!id\" Version=\"2.0\" IssueInstant=\"!time\">\n<saml:NameID>@NOT_USED@</saml:NameID>\n<samlp:SessionIndex>!ticket</samlp:SessionIndex>\n</samlp:LogoutRequest>", array('!id' => user_password(10), '!time' => time(), '!ticket' => $ticket)),
       );
+
+      if ($double_encode) {
+        // Certain CAS servers urlencode the logoutRequest.
+        $data['logoutRequest'] = urlencode($data['logoutRequest']);
+      }
 
       // Sign out the user.
       $options = array(

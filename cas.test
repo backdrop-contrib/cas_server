@@ -633,6 +633,19 @@ class CasSingleSignOutTestCase extends CasTestHelper {
     // @todo: Add additional tests for other methods of logging in (especially
     //   methods coming from cas_pages).
   }
+
+  function testSingleSignOutDoubleEncode() {
+    // Create a user, and log in.
+    $cas_name = $this->randomName();
+    $account = $this->casCreateUser($cas_name);
+    $this->casLogin($account);
+
+    cas_test_single_sign_out($cas_name, TRUE);
+    $this->assertLoggedOut();
+
+    // @todo: Add additional tests for other methods of logging in (especially
+    //   methods coming from cas_pages).
+  }
 }
 
 /**
