@@ -45,7 +45,7 @@ function cas_drush_help($section) {
     case 'drush:cas-user-create':
       return dt('Create a CAS user account with the specified CAS username.');
     case 'drush:cas-user-add-role':
-    return dt('Add a role to the specified CAS usernames.');
+      return dt('Add a role to the specified CAS usernames.');
   }
 }
 
@@ -101,7 +101,14 @@ function cas_drush_user_add_role($role, $users = '') {
 }
 
 /**
- * Given a comma-separated list of users, return UIDs for users that match by CAS username
+ * Look up user ids from a comma-separated list of CAS usernames.
+ *
+ * @param $users string
+ *   Comma separated list of CAS usernames.
+ *
+ * @return array
+ *   An array of user ids corresponding to the given CAS usernames. Unknown
+ *   CAS usernames are ignored.
  */
 function cas_drush_user_get_users_from_arguments($users) {
   $uids = array();
