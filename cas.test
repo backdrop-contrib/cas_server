@@ -437,6 +437,13 @@ class CasUserTestCase extends CasTestHelper {
 
     $this->assertToken('[cas:name]', $account->cas_name);
   }
+
+  function testCaseInsensitiveLogin() {
+    $account = $this->casCreateUser();
+    $this->casLogin(strtoupper($account->cas_name));
+    $this->assertLoggedIn($account);
+  }
+
 }
 
 /**

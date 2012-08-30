@@ -606,7 +606,7 @@ function cas_user_load_by_name($cas_name, $alter = FALSE) {
     $cas_name = $cas_user['name'];
   }
 
-  $uid = db_query("SELECT uid FROM {cas_user} WHERE cas_name = :cas_name", array(':cas_name' => $cas_name))->fetchField();
+  $uid = db_select('cas_user')->fields('cas_user', array('uid'))->condition('cas_name', db_like($cas_name), 'LIKE')->range(0, 1)->execute()->fetchField();
   if ($uid) {
     return user_load($uid);
   }
