@@ -590,12 +590,15 @@ function cas_user_delete($account) {
  * @param $alter
  *   If TRUE, run the CAS username through hook_cas_user_alter() before
  *   loading the account.
+ * @param $reset
+ *   TRUE to reset the internal cache and load from the database; FALSE
+ *   (default) to load from the internal cache, if set.
  *
  * @return
  *   A fully-loaded $user object upon successful user load or FALSE if user
  *   cannot be loaded.
  */
-function cas_user_load_by_name($cas_name, $alter = FALSE) {
+function cas_user_load_by_name($cas_name, $alter = FALSE, $reset = FALSE) {
   if ($alter) {
     $cas_user = array(
       'name' => $cas_name,
@@ -608,7 +611,7 @@ function cas_user_load_by_name($cas_name, $alter = FALSE) {
 
   $uid = db_select('cas_user')->fields('cas_user', array('uid'))->condition('cas_name', db_like($cas_name), 'LIKE')->range(0, 1)->execute()->fetchField();
   if ($uid) {
-    return user_load($uid);
+    return user_load($uid, $reset);
   }
   return FALSE;
 }
