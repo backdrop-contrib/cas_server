@@ -140,7 +140,7 @@ class CasTestHelper extends DrupalWebTestCase {
 
     $pass = $this->assertLink(t('Log out'), 0, t('CAS user %cas_name successfully logged in.', array('%cas_name' => $cas_name)), t('User login'));
     if ($pass) {
-      $this->loggedInUser = cas_user_load_by_name($cas_name, TRUE);
+      $this->loggedInUser = cas_user_load_by_name($cas_name, TRUE, TRUE);
     }
   }
 
