@@ -243,16 +243,17 @@ function cas_phpcas_init() {
   $server_port       = (int)variable_get('cas_port', '443');
   $server_uri        = (string)variable_get('cas_uri', '');
   $cas_cert          = (string)variable_get('cas_cert', '');
-  if ( ($debugFile = variable_get("cas_debugfile", "")) != "" ) {
-    phpCAS::setDebug($debugFile);
+  $debug_file        = (string)variable_get('cas_debugfile', '');
+  if ($debug_file != '') {
+    phpCAS::setDebug($debug_file);
   }
   $start_session = (boolean)FALSE;
-  if ( variable_get("cas_proxy", 0) ) {
+  if (variable_get('cas_proxy', 0)) {
     phpCAS::proxy($server_version, $server_cas_server, $server_port, $server_uri, $start_session);
-    $casPGTStoragePath = variable_get("cas_pgtpath", "");
-    if ( $casPGTStoragePath != "" ) {
-      $casPGTFormat = variable_get("cas_pgtformat", "plain");
-      phpCAS::setPGTStorageFile($casPGTFormat, $casPGTStoragePath);
+    $cas_pgt_storage_path = variable_get('cas_pgtpath', '');
+    if ($cas_pgt_storage_path != '') {
+      $cas_pgt_format = variable_get('cas_pgtformat', 'plain');
+      phpCAS::setPGTStorageFile($cas_pgt_format, $cas_pgt_storage_path);
     }
   }
   else {
