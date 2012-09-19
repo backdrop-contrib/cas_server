@@ -115,9 +115,9 @@ function cas_drush_user_get_users_from_arguments($users) {
   if ($users !== '') {
     $users = explode(',', $users);
     foreach ($users as $user) {
-      $uid = cas_user_load_by_name($user)->uid;
-      if (!empty($uid)) {
-        $uids[] = $uid;
+      $account = cas_user_load_by_name($user);
+      if ($account) {
+        $uids[] = $account->uid;
       }
     }
   }
