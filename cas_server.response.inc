@@ -40,7 +40,7 @@ function theme_cas_service_validate_attributes($variables) {
   $style = $variables['style'];
 
   $output = '';
-  switch($style) {
+  switch ($style) {
     case 'jasig':
     default:
       $output .= "<cas:attributes>\n";
