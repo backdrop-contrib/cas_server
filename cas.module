@@ -381,8 +381,8 @@ function cas_menu_site_status_alter(&$menu_site_status, $path) {
  * Implements hook_menu_link_alter().
  *
  * Flag this link as needing alter at display time.
- * @see cas_translated_menu_link_alter().
- **/
+ * @see cas_translated_menu_link_alter()
+ */
 function cas_menu_link_alter(&$item) {
   if ($item['link_path'] == 'cas' || $item['link_path'] == 'caslogout') {
     $item['options']['alter'] = TRUE;
@@ -393,7 +393,7 @@ function cas_menu_link_alter(&$item) {
  * Implements hook_translated_menu_item_alter().
  *
  * Append dynamic query 'destination' to several menu items.
- **/
+ */
 function cas_translated_menu_link_alter(&$item) {
   if ($item['href'] == 'cas') {
     $item['localized_options']['query'] = drupal_get_destination();
@@ -438,7 +438,7 @@ function cas_user_operations($form = array(), $form_state = array()) {
  *   An array of user ids. For each account, a CAS username is created with
  *   the same name as the Drupal username.
  *
- * @see cas_user_operations().
+ * @see cas_user_operations()
  */
 function cas_user_operations_create_username($uids) {
   $accounts = user_load_multiple($uids);
@@ -464,7 +464,7 @@ function cas_user_operations_create_username($uids) {
  * @param $uids
  *   An array of user ids. For each account, all CAS usernames are removed.
  *
- * @see cas_user_operations().
+ * @see cas_user_operations()
  */
 function cas_user_operations_remove_usernames($uids) {
   db_delete('cas_user')
@@ -750,7 +750,7 @@ function cas_login_block($form) {
  * Determine if we should automatically check if the user is authenticated.
  *
  * This implements part of the CAS gateway feature.
- * @see phpCAS::checkAuthentication().
+ * @see phpCAS::checkAuthentication()
  *
  * @return
  *   TRUE if we should query the CAS server to see if the user is already
@@ -1243,7 +1243,7 @@ function cas_user_register($cas_name, $options = array()) {
  * Get the CAS attributes of the current CAS user.
  *
  * Ensures that phpCAS is properly initialized before getting the attributes.
- * @see phpCAS::getAttributes().
+ * @see phpCAS::getAttributes()
  *
  * @param $cas_name
  *   If provided, ensure that the currently logged in CAS user matches this
