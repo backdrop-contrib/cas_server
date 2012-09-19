@@ -87,7 +87,7 @@ function cas_drush_user_add_role($role, $users = '') {
   if (!empty($uids)) {
     if ($rid = drush_db_result($rid_query)) {
       drush_op('user_multiple_role_edit', $uids, 'add_role', $rid);
-      foreach($uids as $uid) {
+      foreach ($uids as $uid) {
         drush_log(dt("Added the !role role to uid !uid", array('!role' => $role, '!uid' => $uid)), 'success');
       }
     }
