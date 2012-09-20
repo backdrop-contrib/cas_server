@@ -1066,20 +1066,19 @@ function _cas_single_sign_out_check() {
         // Log them out now.
         // first lets find out who we want to log off
 
-        $result = db_query_range("SELECT cld.uid FROM {cas_login_data} cld WHERE cld.cas_session_id = :ticket", 0 , 1, array(':ticket' => $cas_session_index));
-        foreach ($result as $record) {
-            $uid = $record->uid;
-            $acct = user_load($uid);
-            watchdog('user', 'Session closed for %name.', array('%name' => $acct->name));
-            // remove all entry for user id in cas_login_data
-            db_delete('cas_login_data')
-              ->condition('uid', $uid)
-              ->execute();
 
-            // remove their session
-            db_delete('sessions')
-              ->condition('uid', $uid)
-              ->execute();
+        $record = db_query_range("SELECT cld.uid, u.name FROM {users} u JOIN {cas_login_data} cld ON u.uid = cld.uid WHERE cld.cas_session_id = :ticket", 0, 1, array(':ticket' => $cas_session_index))->fetchObject();
+        if ($record) {
+          watchdog('user', 'Session closed for %name by CAS logout request.', array('%name' => $record->name));
+          //remove all entry for user id in cas_login_data
+          db_delete('cas_login_data')
+            ->condition('uid', $record->uid)
+            ->execute();
+
+          // remove their session
+          db_delete('sessions')
+            ->condition('uid', $record->uid)
+            ->execute();
         }
       }
     }
