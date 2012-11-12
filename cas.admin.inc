@@ -310,12 +310,14 @@ function cas_admin_settings() {
       ),
     ),
   );
-  $form['advanced']['cas_proxy_settings']['cas_pgtformat'] = array(
-    '#type' => 'radios',
-    '#title' => t('CAS PGT storage file format'),
-    '#default_value' => variable_get('cas_pgtformat', 'plain'),
-    '#options' => array('plain' => t('Plain Text'), 'xml' => t('XML')),
-  );
+  if (defined('PHPCAS_VERSION') && version_compare(PHPCAS_VERSION, '1.3', '<')) {
+    $form['advanced']['cas_proxy_settings']['cas_pgtformat'] = array(
+      '#type' => 'radios',
+      '#title' => t('CAS PGT storage file format'),
+      '#default_value' => variable_get('cas_pgtformat', 'plain'),
+      '#options' => array('plain' => t('Plain Text'), 'xml' => t('XML')),
+    );
+  }
 
   $form['advanced']['cas_proxy_settings']['cas_pgtpath'] = array(
     '#type' => 'textfield',
