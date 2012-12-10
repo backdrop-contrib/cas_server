@@ -963,13 +963,15 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
         }
         if (variable_get('cas_hide_password', 0)) {
           $form['account']['pass']['#access'] = FALSE;
-
-          // Also remove requirement to validate your current password before
-          // changing your e-mail address.
-          $form['account']['current_pass']['#access'] = FALSE;
-          $form['account']['current_pass_required_values']['#access'] = FALSE;
-          $form['#validate'] = array_diff($form['#validate'], array('user_validate_current_pass'));
         }
+      }
+      if (cas_is_external_user($account) && variable_get('cas_hide_password', 0)) {
+        // Also remove requirement to validate your current password before
+        // changing your e-mail address.
+        $form['account']['current_pass']['#access'] = FALSE;
+        $form['account']['current_pass_required_values']['#access'] = FALSE;
+        $form['account']['current_pass_required_values']['#value'] = array();
+        $form['#validate'] = array_diff($form['#validate'], array('user_validate_current_pass'));
       }
       break;
 
