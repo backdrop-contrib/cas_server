@@ -773,33 +773,35 @@ function _cas_allow_check_for_login() {
   }
 
   // Check to see if we've got a search bot.
-  $crawlers = array(
-    'Google',
-    'msnbot',
-    'Rambler',
-    'Yahoo',
-    'AbachoBOT',
-    'accoona',
-    'AcoiRobot',
-    'ASPSeek',
-    'CrocCrawler',
-    'Dumbot',
-    'FAST-WebCrawler',
-    'GeonaBot',
-    'Gigabot',
-    'Lycos',
-    'MSRBOT',
-    'Scooter',
-    'AltaVista',
-    'IDBot',
-    'eStyle',
-    'Scrubby',
-    'gsa-crawler',
-    );
-  // Return on the first find.
-  foreach ($crawlers as $c) {
-    if (stripos($_SERVER['HTTP_USER_AGENT'], $c) !== FALSE) {
-      return FALSE;
+  if (isset($_SERVER['HTTP_USER_AGENT'])) {
+    $crawlers = array(
+      'Google',
+      'msnbot',
+      'Rambler',
+      'Yahoo',
+      'AbachoBOT',
+      'accoona',
+      'AcoiRobot',
+      'ASPSeek',
+      'CrocCrawler',
+      'Dumbot',
+      'FAST-WebCrawler',
+      'GeonaBot',
+      'Gigabot',
+      'Lycos',
+      'MSRBOT',
+      'Scooter',
+      'AltaVista',
+      'IDBot',
+      'eStyle',
+      'Scrubby',
+      'gsa-crawler',
+      );
+    // Return on the first find.
+    foreach ($crawlers as $c) {
+      if (stripos($_SERVER['HTTP_USER_AGENT'], $c) !== FALSE) {
+        return FALSE;
+      }
     }
   }
 
