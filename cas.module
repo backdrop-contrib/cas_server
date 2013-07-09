@@ -889,7 +889,6 @@ function _cas_force_login() {
  */
 function cas_form_alter(&$form, &$form_state, $form_id) {
 
-  //drupal_set_message($form_id.'<pre>'.print_r($form,1).'</pre>');
   switch ($form_id) {
     case 'user_login':
     case 'user_login_block':
