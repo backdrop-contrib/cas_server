@@ -264,6 +264,14 @@ function cas_phpcas_init() {
   else {
     phpCAS::client($server_version, $server_cas_server, $server_port, $server_uri, $start_session);
   }
+
+  //Add CAS proxy lists allowed
+  $proxy_list = variable_get('cas_proxy_list', '');
+  if ($proxy_list) {
+    $proxy_list = explode("\n", $proxy_list);
+    phpCAS::allowProxyChain(new CAS_ProxyChain($proxy_list));
+  }
+
   // force CAS authentication
   if ($cas_cert = variable_get('cas_cert', '')) {
     phpCAS::setCasServerCACert($cas_cert);
