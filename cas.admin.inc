@@ -310,14 +310,14 @@ function cas_admin_settings() {
       ),
     ),
   );
-  if (defined('PHPCAS_VERSION') && version_compare(PHPCAS_VERSION, '1.3', '<')) {
-    $form['advanced']['cas_proxy_settings']['cas_pgtformat'] = array(
-      '#type' => 'radios',
-      '#title' => t('CAS PGT storage file format'),
-      '#default_value' => variable_get('cas_pgtformat', 'plain'),
-      '#options' => array('plain' => t('Plain Text'), 'xml' => t('XML')),
-    );
-  }
+
+  $form['advanced']['cas_proxy_settings']['cas_pgtformat'] = array(
+    '#type' => 'radios',
+    '#title' => t('CAS PGT storage file format'),
+    '#default_value' => variable_get('cas_pgtformat', 'plain'),
+    '#options' => array('plain' => t('Plain Text'), 'xml' => t('XML')),
+    '#after_build' => array('cas_pgtformat_version_check'),
+  );
 
   $form['advanced']['cas_proxy_settings']['cas_pgtpath'] = array(
     '#type' => 'textfield',
@@ -376,6 +376,16 @@ function cas_library_version_check($element, &$form_state) {
  */
 function cas_proxy_list_version_check($element, &$form_state) {
   if (!defined('PHPCAS_VERSION') || version_compare(PHPCAS_VERSION, '1.3', '<')) {
+    $element['#access'] = FALSE;
+  }
+  return $element;
+}
+
+/**
+ * Since 1.3, pgt format isn't supported and default to plain.
+ */
+function cas_pgtformat_version_check($element, &$form_state) {
+  if (!defined('PHPCAS_VERSION') || version_compare(PHPCAS_VERSION, '1.3', '>')) {
     $element['#access'] = FALSE;
   }
   return $element;
