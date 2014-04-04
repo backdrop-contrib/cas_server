@@ -1073,10 +1073,11 @@ function _cas_single_sign_out_check() {
       $namespaces = $cas_logout_request_xml->getNameSpaces();
       $xsearch = 'SessionIndex';
       if (isset($namespaces['samlp'])) {
-        $cas_logout_request_xml->registerXPathNamespace('samlp', $namespaces['samlp']);
-        $xsearch = 'samlp:SessionIndex';
+        $cas_session_indexes = $cas_logout_request_xml->children($namespaces['samlp'])->SessionIndex;
       }
-      $cas_session_indexes = $cas_logout_request_xml->xpath($xsearch);
+      else {
+        $cas_session_indexes = $cas_logout_request_xml->xpath($xsearch);
+      }
       if ($cas_session_indexes) {
         $cas_session_index = (string)$cas_session_indexes[0];
         // Log them out now.
