@@ -177,6 +177,8 @@ function cas_login_check($force_authentication = TRUE) {
   }
   else {
     $user = drupal_anonymous_user();
+    unset($_SESSION['phpCAS']);
+
     // Only display error messages only if the user intended to log in.
     if ($force_authentication) {
       drupal_set_message(t('No account found for %cas_name.', array('%cas_name' => $cas_name)), 'error');

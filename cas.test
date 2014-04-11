@@ -374,6 +374,12 @@ class CasUserTestCase extends CasTestHelper {
     $this->drupalGet('cas');
     $this->assertRaw(t('No account found for %cas_name.', array('%cas_name' => $cas_name)));
 
+    // Ensure that the login result is not cached.
+    $cas_name = $this->randomName();
+    $this->setCasUser($cas_name);
+    $this->drupalGet('cas');
+    $this->assertRaw(t('No account found for %cas_name.', array('%cas_name' => $cas_name)));
+
     // Test that the user is automatically registered.
     variable_set('cas_user_register', TRUE);
     $this->drupalGet('cas');
