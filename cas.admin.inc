@@ -337,10 +337,10 @@ function cas_admin_settings() {
 
   $form['advanced']['cas_debugfile'] = array(
     '#type' => 'textfield',
-    '#title' => t('CAS debugging output filename'),
+    '#title' => t('CAS debugging output file'),
     '#default_value' => variable_get('cas_debugfile', ''),
     '#maxlength' => 255,
-    '#description' => t("Leave empty if you don't want debugging output."),
+    '#description' => "<p>" . t("A file system path and filename where the CAS debug log will be written. May be either a full path or a path relative to the Drupal installation root. The directory and file must be writable by Drupal.") . "</p> <p>" . t("Leave blank to disable logging.") . "</p> <p><strong>" . t("Debugging should not be enabled on production systems.") . "</strong></p>",
   );
 
   return system_settings_form($form);
