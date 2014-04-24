@@ -332,19 +332,24 @@ class CasUserAdminTestCase extends CasTestHelper {
   function testCasUserAdd() {
     $this->drupalLogin($this->admin_user);
 
-    // Add a CAS user.
-    $edit = array(
-      'cas_name' => $this->randomName(),
-    );
-    $this->drupalPost('admin/people/cas/create', $edit, t('Create new account'));
-    $this->assertText(t('Created a new user account for @name. No e-mail has been sent.', array('@name' => $edit['cas_name'])), 'User created');
+    // Add 3 CAS users.
+    $edit = array();
+    for ($i = 0; $i < 3; $i++) {
+      $cas_names[] = $this->randomName();
+    }
+    $edit['cas_name'] = implode("\n", $cas_names);
+    $this->drupalPost('admin/people/cas/create', $edit, t('Create new account(s)'));
+    $this->assertText(t('The following 3 CAS usernames were created: @cas_names', array('@cas_names' => implode(', ', $cas_names))), 'Users created');
 
-    // Verify the user shows up in the list of all users.
+    // Verify the users show up in the list of all users.
     $this->drupalGet('admin/people');
-    $this->assertNoUniqueText($edit['cas_name'], 'User and CAS username found in list of users');
+    foreach ($cas_names as $cas_name) {
+      $this->assertNoUniqueText($cas_name, 'User and CAS username found in list of users');
+    }
 
-    // Attempt to add the user again and see that it fails.
-    $this->drupalPost('admin/people/cas/create', $edit, t('Create new account'));
+    // Attempt to add one of the users again and see that it fails.
+    $edit['cas_name'] = $cas_names[0];
+    $this->drupalPost('admin/people/cas/create', $edit, t('Create new account(s)'));
     $this->assertText(t('The CAS username is already in use on this site.'), 'CAS username already in use.');
   }
 }

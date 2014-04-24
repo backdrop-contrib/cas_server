@@ -342,7 +342,7 @@ function cas_menu() {
     'weight' => -10,
   );
   $items['admin/people/cas/create'] = array(
-    'title' => 'Add CAS user',
+    'title' => 'Add CAS user(s)',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('cas_add_user_form'),
     'access arguments' => array('administer users'),
