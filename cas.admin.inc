@@ -221,7 +221,7 @@ function cas_admin_settings() {
       CAS_CHECK_ONCE => 'Once per browser session',
       CAS_CHECK_ALWAYS => 'Always (every page load)',
     ),
-    '#description' => t('This implements the') . '<a href="https://wiki.jasig.org/display/CAS/gateway">Gateway feature</a>' . t('of the CAS Protocol.') . '<strong>WARNING:</strong>' . t('Enabling it at all will') . '<em>' . t('completely disable page caching') . '</em>' . t(', and will prevent users from logging out locally unless also logged out of CAS. Setting it to "Always" will perform redirects on EVERY page load unless the user is already logged in, and is not recommended in most circumstances.'),
+    '#description' => t('This implements the') . ' <a href="https://wiki.jasig.org/display/CAS/gateway">Gateway feature</a> ' . t('of the CAS Protocol.') . ' <strong>WARNING:</strong> ' . t('Enabling it at all will') . ' <em>' . t('completely disable page caching') . '</em>' . t(', and will prevent users from logging out locally unless also logged out of CAS. Setting it to "Always" will perform redirects on EVERY page load unless the user is already logged in, and is not recommended in most circumstances.'),
   );
 
   $form['pages']['cas_access'] = array(
