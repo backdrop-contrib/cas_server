@@ -241,9 +241,15 @@ function _cas_server_save_ticket($uid, $service) {
 function cas_server_logout() {
   global $user;
 
-  watchdog('user', 'Session closed for %name.', array('%name' => $user->name));
-
-  module_invoke_all('user_logout', $user);
+  // Due to the order of sessions being destroyed on a client site vs CAS server,
+  // there is a workflow that would allow the user's session to not exist at this point.
+  // Skip triggering user logout related processes if there is not a valid user in session.
+  if(user_is_logged_in()) {
+    // Log the successful logout process.
+    watchdog('user', 'Session closed for %name.', array('%name' => $user->name));
+    // Tell modules about the logout.
+    module_invoke_all('user_logout', $user);
+  }
 
   // Destroy the current session, and reset $user to the anonymous user.
   session_destroy();
