@@ -278,7 +278,7 @@ class CasUserAdminTestCase extends CasTestHelper {
     $this->assertFalse($account->cas_name, t('CAS username successfully deleted.'));
     $this->assertEqual(count($account->cas_names), 0, t('No CAS usernames are present.'));
 
-    // Attempt to load by a non-existant CAS username.
+    // Attempt to load by a non-existent CAS username.
     $account = cas_user_load_by_name($cas_new_name);
     $this->assertFalse($account, t('Could not load account with non-existent CAS username.'));
 

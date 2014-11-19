@@ -38,7 +38,7 @@ Installation
 * There are several locations you can install the phpCAS library.
 
   1. Module directory installation. This means installing the library folder
-     under the moduels directory, so that the file
+     under the modules directory, so that the file
      sites/<site>/modules/cas/CAS/CAS.php exists.
 
   2. System wide installation. See the phpCAS installation guide, currently at

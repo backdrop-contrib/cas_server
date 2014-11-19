@@ -129,7 +129,7 @@ function cas_admin_settings() {
     '#description' => t('Message users see at the top of the CAS login form to warn them that they are being redirected to the CAS server.'),
   );
 
-  // Setting for message displayed to user upon successfull login
+  // Setting for message displayed to user upon successful login
   $form['login']['cas_login_message'] = array(
     '#type' => 'textfield',
     '#title' => t('Successful login message'),

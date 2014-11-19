@@ -186,7 +186,7 @@ function cas_server_service_validate() {
     drupal_alter('cas_server_user_attributes', $attributes, $account, $context);
 
     print theme('cas_service_validate_success', array('name' => $user_name, 'attributes' => $attributes));
-    watchdog('cas', 'User %name CAS sucessully authenticated.', array('%name' => $user_name));
+    watchdog('cas', 'User %name CAS successfully authenticated.', array('%name' => $user_name));
   }
   else {
     print theme('cas_service_validate_failure', array('ticket' => $ticket, 'error_code' => $cas_error));

@@ -29,7 +29,7 @@ function theme_cas_service_validate_success($variables) {
  * Returns CAS attributes as part of a CAS 2.0 service response.
  *
  * @param $variables
- *   An asociative array containing the keys 'attributes' and 'style', where
+ *   An associative array containing the keys 'attributes' and 'style', where
  *   the value of 'style' must be one of:
  *     - 'jasig' (default)
  *     - 'rubycas'
