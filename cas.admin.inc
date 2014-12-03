@@ -105,7 +105,9 @@ function cas_admin_settings() {
     '#options' => array(
       CAS_NO_LINK => t('Do not add link to login forms'),
       CAS_ADD_LINK => t('Add link to login forms'),
-      CAS_MAKE_DEFAULT => t('Make CAS login default on login forms')),
+      CAS_MAKE_DEFAULT => t('Make CAS login default on login forms'),
+      CAS_REDIRECT => t('Redirect the login form to CAS'),
+    ),
   );
 
   $form['login']['cas_login_invite'] = array(

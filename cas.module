@@ -10,6 +10,7 @@
 define('CAS_NO_LINK', 0);
 define('CAS_ADD_LINK', 1);
 define('CAS_MAKE_DEFAULT', 2);
+define('CAS_REDIRECT', 3);
 define('CAS_LOGIN_INVITE_DEFAULT', 'Log in using CAS');
 define('CAS_LOGIN_DRUPAL_INVITE_DEFAULT', 'Cancel CAS login');
 define('CAS_LOGIN_REDIR_MESSAGE', 'You will be redirected to the secure CAS login page.');
@@ -881,6 +882,11 @@ function _cas_force_login() {
  * Overrides specific from settings based on user policy.
  */
 function cas_form_alter(&$form, &$form_state, $form_id) {
+  // Special handling of the user login page when the CAS login form is set to
+  // redirect.
+  if ($form_id == 'user_login' && variable_get('cas_login_form', CAS_NO_LINK) == CAS_REDIRECT) {
+    drupal_goto('cas');
+  }
 
   switch ($form_id) {
     case 'user_login':
