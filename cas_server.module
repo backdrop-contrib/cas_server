@@ -124,7 +124,7 @@ function cas_server_login() {
         setcookie(CAS_LOGIN_COOKIE, $service);
       }
       $output .= l(t('Login'), 'user', array('query' => array('destination' => 'cas/login')));
-      drupal_goto('user', array('query' => array('destination' => 'cas/login')));
+      drupal_goto('user/login', array('query' => array('destination' => 'cas/login')));
     }
   }
   return $output;
