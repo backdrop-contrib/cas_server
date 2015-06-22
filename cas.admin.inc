@@ -47,10 +47,11 @@ function cas_admin_settings() {
   $form['server']['cas_version'] = array(
     '#type' => 'radios',
     '#title' => t('Version'),
-    '#default_value' => variable_get('cas_version', '2.0'),
+    '#default_value' => variable_get('cas_version', '3.0'),
     '#options' => array(
       '1.0' => '1.0',
-      '2.0' => t('2.0 or higher'),
+      '2.0' => t('2.0'),
+      '3.0' => t('3.0 or higher'),
       'S1' => t('SAML Version 1.1'),
     ),
   );
