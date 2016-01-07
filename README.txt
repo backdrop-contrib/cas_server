@@ -22,7 +22,7 @@ the CAS Server module, please see README_SERVER.txt
 
 Requirements
 ============
-PHP 5 with the following modules:
+PHP 5 with the following extensions:
   curl, openssl, dom, zlib, and xml
 phpCAS version 1.0.0 or later.
 
