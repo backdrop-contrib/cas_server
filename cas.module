@@ -397,7 +397,7 @@ function cas_user_is_logged_in() {
  * Implements hook_menu_site_status_alter().
  */
 function cas_menu_site_status_alter(&$menu_site_status, $path) {
-  if (user_is_logged_in() && $path == 'cas') {
+  if (user_is_logged_in() && strtolower($path) == 'cas') {
     // If user is logged in, redirect to '<front>' instead of giving 403.
     drupal_goto('');
   }
@@ -410,7 +410,7 @@ function cas_menu_site_status_alter(&$menu_site_status, $path) {
  * @see cas_translated_menu_link_alter()
  */
 function cas_menu_link_alter(&$item) {
-  if ($item['link_path'] == 'cas' || $item['link_path'] == 'caslogout') {
+  if (strtolower($item['link_path']) == 'cas' || strtolower($item['link_path']) == 'caslogout') {
     $item['options']['alter'] = TRUE;
   }
 }
@@ -421,10 +421,10 @@ function cas_menu_link_alter(&$item) {
  * Append dynamic query 'destination' to several menu items.
  */
 function cas_translated_menu_link_alter(&$item) {
-  if ($item['href'] == 'cas') {
+  if (strtolower($item['href']) == 'cas') {
     $item['localized_options']['query'] = drupal_get_destination();
   }
-  elseif ($item['href'] == 'caslogout' && !variable_get('cas_logout_destination', '')) {
+  elseif (strtolower($item['href']) == 'caslogout' && !variable_get('cas_logout_destination', '')) {
     $item['localized_options']['query'] = drupal_get_destination();
   }
 }
@@ -835,7 +835,7 @@ function _cas_allow_check_for_login() {
  */
 function _cas_force_login() {
   // The 'cas' page is a shortcut to force authentication.
-  if (arg(0) == 'cas') {
+  if (strtolower(arg(0)) == 'cas') {
     return TRUE;
   }
 
@@ -1321,7 +1321,7 @@ function _cas_redirect_after_login($cas_first_login) {
   else {
     // If logged in through forced authentication ('/cas'), then redirect user to the
     // homepage, or to wherever the current "destination" parameter points.
-    if (current_path() == 'cas') {
+    if (strtolower(current_path()) == 'cas') {
       drupal_goto('');
     }
     // If logged in through gateway feature, then just reload the current path
