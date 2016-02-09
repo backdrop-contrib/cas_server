@@ -32,8 +32,8 @@ Installation
 * Place the cas folder in your Drupal modules directory.
 
 * Download phpCAS from https://wiki.jasig.org/display/CASC/phpCAS. You will
-  need version 1.0.0 or later. The most recent release is available at
-  http://downloads.jasig.org/cas-clients/php/current.tgz
+  need version 1.3.2 or later (1.3.3 for CAS 3.0 support). The most recent
+  release is available at http://downloads.jasig.org/cas-clients/php/current.tgz
 
 * There are several locations you can install the phpCAS library.
 

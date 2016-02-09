@@ -51,7 +51,7 @@ function cas_admin_settings() {
     '#options' => array(
       '1.0' => '1.0',
       '2.0' => t('2.0'),
-      '3.0' => t('3.0 or higher'),
+      '3.0' => t('3.0 or higher (requires phpCAS >= 1.3.3)'),
       'S1' => t('SAML Version 1.1'),
     ),
   );
