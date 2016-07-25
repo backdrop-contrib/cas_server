@@ -1134,7 +1134,8 @@ function _cas_single_sign_out_save_token($user) {
   // Ok lets save the CAS service ticket to DB so
   // we can handle CAS logoutRequests when they come
   if ($user->uid && $user->uid > 0 && !empty($_SESSION['cas_ticket'])) {
-    db_insert('cas_login_data')
+    db_merge('cas_login_data')
+      ->key(array('cas_session_id' => $_SESSION['cas_ticket']))
       ->fields(array(
         'cas_session_id' => $_SESSION['cas_ticket'],
         'uid' => $user->uid,
