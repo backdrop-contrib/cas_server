@@ -63,7 +63,7 @@ function cas_admin_settings() {
     '#size' => 30,
     // Hostnames can be 255 characters long.
     '#maxlength' => 255,
-    '#description' => t('Hostname or IP Address of the CAS server.'),
+    '#description' => t('Hostname or IP Address of the CAS server. CAS logins will not work until this hostname is entered.'),
   );
 
   $form['server']['cas_port'] = array(

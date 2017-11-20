@@ -149,6 +149,13 @@ function cas_requirements($phase) {
 }
 
 /**
+ * Implements hook_enable().
+ */
+function cas_enable() {
+  drupal_set_message(t('CAS has been enabled. Please <a href="@url">configure</a> it.', array('@url' => url('admin/config/people/cas'))), 'warning');
+}
+
+/**
  * Creates CAS login data table for Single-Sign-Out.
  */
 function cas_update_1() {

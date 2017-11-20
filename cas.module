@@ -79,8 +79,10 @@ function cas_login_check($force_authentication = TRUE) {
   drupal_session_start();
   _cas_single_sign_out_save_ticket();  // We use this later for CAS 3 logoutRequests
 
-  // Initialize phpCAS.
-  cas_phpcas_init();
+  // Initialize phpCAS if possible, otherwise just back out.
+  if (cas_phpcas_init() === FALSE) {
+    return;
+  }
 
   // We're going to try phpCAS auth test
   if ($force_authentication) {
@@ -252,11 +254,19 @@ function cas_phpcas_init() {
 
   // Variable set
   $server_version    = (string)variable_get('cas_version', '3.0');
-  $server_cas_server = (string)variable_get('cas_server', 'sso-cas.univ-rennes1.fr');
+  $server_cas_server = (string)variable_get('cas_server', '');
   $server_port       = (int)variable_get('cas_port', '443');
   $server_uri        = (string)variable_get('cas_uri', '');
   $cas_cert          = (string)variable_get('cas_cert', '');
   $debug_file        = (string)variable_get('cas_debugfile', '');
+
+  // Back out if there's no configured CAS server hostname. This is the
+  // minimum required configuration to initialize phpCAS.
+  if (empty($server_cas_server)) {
+    watchdog('cas', 'Unable to initialize phpCAS because no CAS server hostname has been configured.', array(), WATCHDOG_ERROR);
+    return FALSE;
+  }
+
   if ($debug_file != '') {
     phpCAS::setDebug($debug_file);
   }

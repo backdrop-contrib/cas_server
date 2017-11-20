@@ -31,6 +31,9 @@ class CasTestHelper extends DrupalWebTestCase {
     // in phpCAS.
     variable_set('clean_url', TRUE);
 
+    // Set CAS server url (will be altered).
+    variable_set('cas_server', 'example.com');
+
     // Create admin user.
     $this->admin_user = $this->drupalCreateUser(array('administer users', 'administer cas'));
 
