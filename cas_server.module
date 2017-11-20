@@ -350,7 +350,14 @@ function cas_server_logout_clients($account) {
    $result = db_query("SELECT service, ticket, valid FROM {cas_server_tickets} WHERE uid= :uid", array(':uid' => $account->uid));
     if ($result !== FALSE) {
       $expired_tickets = array();
+      // Set a time limit for all logout requests. This is useful if a user has
+      // accumulated a lot of login sessions for services that may be
+      // unresponsive.
+      $timelimit = time() + (int) variable_get('cas_server_slo_group_timeout', 15);
       foreach ($result as $client) {
+        if (time() > $timelimit) {
+          break;
+        }
         $expired_tickets[] = $client->ticket;
         if (!$client->valid)  {
           $id = 'LR-' . user_password();
@@ -363,6 +370,7 @@ function cas_server_logout_clients($account) {
               'headers' => array('Content-Type' => 'application/x-www-form-urlencoded'),
               'method' =>  'POST',
               'data' => 'logoutRequest=' . urlencode($logout_request),
+              'timeout' => (int) variable_get('cas_server_slo_individual_timeout', 5),
             )
           );
           if (@$response->error) {

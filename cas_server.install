@@ -53,6 +53,8 @@ function cas_server_schema() {
 function cas_server_uninstall() {
   variable_del('cas_server_service_whitelist');
   variable_del('cas_server_whitelist_failure');
+  variable_get('cas_server_slo_individual_timeout');
+  variable_get('cas_server_slo_group_timeout');
 }
 
 /**
