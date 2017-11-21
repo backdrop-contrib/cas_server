@@ -27,6 +27,12 @@ function cas_schema() {
         'unsigned' => TRUE,
         'not null' => TRUE,
       ),
+      'created' => array(
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Timestamp when this record was created.',
+      ),
     ),
     'primary key' => array('cas_session_id'),
   );
@@ -107,6 +113,7 @@ function cas_uninstall() {
   variable_del('cas_uri');
   variable_del('cas_user_register');
   variable_del('cas_version');
+  variable_del('cas_single_logout_session_lifetime');
 
   // And old (un-used) variables.
   variable_del('cas_cert_verify');
@@ -387,4 +394,23 @@ function cas_update_7102() {
   if (!db_index_exists('cas_user', 'cas_user')) {
     db_add_index('cas_user', 'cas_user', array('uid'));
   }
+}
+
+/**
+ * Add created column to cas_login_data table.
+ */
+function cas_update_7103() {
+  db_add_field('cas_login_data', 'created', array(
+    'type' => 'int',
+    'not null' => TRUE,
+    'default' => 0,
+    'description' => 'Timestamp when this record was created.',
+  ));
+  $now = time();
+  // Assume that all data was inserted today. This is obviously not true, but
+  // it will prevent us from deleting the existing data for some time, since
+  // the cron task will only delete data older than X days.
+  db_update('cas_login_data')
+    ->fields(array('created' => $now))
+    ->execute();
 }

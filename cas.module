@@ -399,6 +399,21 @@ function cas_menu() {
   return $items;
 }
 
+/**
+ * Implements hook_cron().
+ */
+function cas_cron() {
+  // Clear old single logout session mapping data.
+  $max_days = (int) variable_get('cas_single_logout_session_lifetime', 25);
+  $seconds_in_day = 86400;
+  $seconds = $max_days * $seconds_in_day;
+  if ($seconds > 0) {
+    db_delete('cas_login_data')
+      ->condition('created', time() - $seconds, '<=')
+      ->execute();
+  }
+}
+
 function cas_user_is_logged_in() {
   return user_is_logged_in() || !empty($_SESSION['phpCAS']['user']);
 }
@@ -1149,7 +1164,8 @@ function _cas_single_sign_out_save_token($user) {
       ->fields(array(
         'cas_session_id' => $_SESSION['cas_ticket'],
         'uid' => $user->uid,
-        ))
+        'created' => time(),
+      ))
       ->execute();
     unset($_SESSION['cas_ticket']);
   }
