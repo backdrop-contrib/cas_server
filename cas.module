@@ -942,7 +942,7 @@ function cas_form_alter(&$form, &$form_state, $form_id) {
           '#theme' => 'item_list',
           '#items' => $items,
           '#attributes' => array('class' => array('cas-links')),
-          '#weight' => 1,
+          '#weight' => 101,
         );
 
         $form['links']['#weight'] = 2;
