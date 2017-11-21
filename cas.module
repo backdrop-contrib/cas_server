@@ -1258,7 +1258,7 @@ function cas_user_register($cas_name, $options = array()) {
 
   // Create the user account.
   $account = user_save(drupal_anonymous_user(), $edit);
-  watchdog("user", 'new user: %n (CAS)', array('%n' => format_username($account)), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$account->uid"));
+  watchdog("user", 'new user: %n (CAS)', array('%n' => format_username($account)), WATCHDOG_NOTICE, l(t("edit user"), "user/edit/$account->uid"));
 
   if (!empty($options['invoke_cas_user_presave'])) {
     // Populate $edit with some basic properties.
