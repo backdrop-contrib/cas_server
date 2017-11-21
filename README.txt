@@ -129,7 +129,8 @@ usernames, and the bulk operations drop-down includes options for rapidly
 creating and removing CAS usernames. The "Create CAS username" option will
 assign a CAS username to each selected account that matches their Drupal name.
 The "Remove CAS usernames" option will remove all CAS usernames from the
-selected accounts.
+selected accounts.  (Note: This will not appear if the Admin_Views module is used,
+as it replaces the built-in People administration screen with a View)
 
 API Changes Since 6.x-2.x
 =========================
