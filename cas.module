@@ -180,7 +180,7 @@ function cas_login_check($force_authentication = TRUE) {
     $user = user_save($account, $edit);
     user_login_finalize($edit);
 
-    drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => $user->name)));
+    drupal_set_message(t(variable_get('cas_login_message', 'Logged in via CAS as %cas_username.'), array('%cas_username' => format_username($user))));
     if (!empty($edit['persistent_login'])) {
       drupal_set_message(t('You will remain logged in on this computer even after you close your browser.'));
     }
@@ -714,7 +714,7 @@ function cas_logout($invoke_hook = TRUE) {
 
   // Mimic user_logout().
   if ($invoke_hook) {
-    watchdog('user', 'Session closed for %name.', array('%name' => $user->name));
+    watchdog('user', 'Session closed for %name.', array('%name' => format_username($user)));
     module_invoke_all('user_logout', $user);
   }
 
@@ -1258,7 +1258,7 @@ function cas_user_register($cas_name, $options = array()) {
 
   // Create the user account.
   $account = user_save(drupal_anonymous_user(), $edit);
-  watchdog("user", 'new user: %n (CAS)', array('%n' => $account->name), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$account->uid"));
+  watchdog("user", 'new user: %n (CAS)', array('%n' => format_username($account)), WATCHDOG_NOTICE, l(t("edit user"), "admin/user/edit/$account->uid"));
 
   if (!empty($options['invoke_cas_user_presave'])) {
     // Populate $edit with some basic properties.

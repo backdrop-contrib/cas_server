@@ -325,7 +325,7 @@ function cas_server_logout() {
   // Skip triggering user logout related processes if there is not a valid user in session.
   if(user_is_logged_in()) {
     // Log the successful logout process.
-    watchdog('user', 'Session closed for %name.', array('%name' => $user->name));
+    watchdog('user', 'Session closed for %name.', array('%name' => format_username($user)));
     // Tell modules about the logout.
     module_invoke_all('user_logout', $user);
   }
