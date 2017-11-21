@@ -3,7 +3,7 @@ Introduction
 
 Central Authentication Services (CAS) is a commonly used Single Sign-On
 protocol used by many universities and large organizations. For a brief
-introduction, please see the Jasig website: http://www.jasig.org/cas/about
+introduction, please see the CAS website: https://www.apereo.org/projects/cas
 
 The Drupal CAS project has two modules:
 
@@ -33,7 +33,7 @@ Installation
 
 * Download phpCAS from https://wiki.jasig.org/display/CASC/phpCAS. You will
   need version 1.3.2 or later (1.3.3 for CAS 3.0 support). The most recent
-  release is available at http://downloads.jasig.org/cas-clients/php/current.tgz
+  release is available at https://developer.jasig.org/cas-clients/php/current.tgz
 
 * There are several locations you can install the phpCAS library.
 
@@ -48,7 +48,7 @@ Installation
      available at http://drupal.org/project/libraries. Then extract phpCAS so
      that sites/<site>/libraries/CAS/CAS.php exists. For example:
        $ cd sites/all/libraries
-       $ curl http://downloads.jasig.org/cas-clients/php/current.tgz | tar xz
+       $ curl https://developer.jasig.org/cas-clients/php/current.tgz | tar xz
        $ mv CAS-* CAS
 
 * Go to Administer > Modules and enable this module.
