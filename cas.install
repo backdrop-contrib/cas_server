@@ -151,6 +151,16 @@ function cas_requirements($phase) {
       $requirements['phpcas']['severity'] = REQUIREMENT_ERROR;
       $requirements['phpcas']['description'] = $t('phpCAS could not be loaded. Please <a href="@phpcas_url">download phpCAS</a> and <a href="@cas_url">configure its location</a>.', array('@phpcas_url' => $phpcas_url, '@cas_url' => url('admin/config/people/cas')));
     }
+
+    $cert = variable_get('cas_cert');
+    if (empty($cert)) {
+      $requirements['cas_cert'] = array(
+        'title' => $t('CAS SSL certificate bundle'),
+        'severity' => REQUIREMENT_ERROR,
+        'value' => $t('Not set'),
+        'description' => $t('The CAS authentication process is not completely secure. Please <a href="@settings_url">visit the CAS settings page</a> and provide the path to the certificate authority bundle.'),
+      );
+    }
   }
   return $requirements;
 }

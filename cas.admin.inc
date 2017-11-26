@@ -89,7 +89,7 @@ function cas_admin_settings() {
     '#title' => t('Certificate Authority PEM Certificate'),
     '#default_value' => variable_get('cas_cert', ''),
     '#maxlength' => 255,
-    '#description' => t('The PEM certificate of the Certificate Authority that issued the certificate of the CAS server. If omitted, the certificate authority will not be verified.'),
+    '#description' => t('The path to the certificate (in PEM format) of the Certificate Authority that issued the SSL certificate of the CAS server. If omitted, the SSL cert of your CAS server will NOT be verified for authenticity. Most operating systems provide a standard CA cert bundle that can be provided here that would work for certificates signed by a well-known authority.'),
   );
 
   $form['login'] = array(
