@@ -1107,8 +1107,8 @@ function _cas_single_sign_out_check() {
         // Log them out now.
         // first lets find out who we want to log off
 
-
-        $record = db_query_range("SELECT cld.uid, u.name FROM {users} u JOIN {cas_login_data} cld ON u.uid = cld.uid WHERE cld.cas_session_id = :ticket", 0, 1, array(':ticket' => $cas_session_index))->fetchObject();
+        $hashed_ticket = hash('sha256', $cas_session_index);
+        $record = db_query_range("SELECT cld.uid, u.name FROM {users} u JOIN {cas_login_data} cld ON u.uid = cld.uid WHERE cld.cas_session_id = :ticket", 0, 1, array(':ticket' => $hashed_ticket))->fetchObject();
         if ($record) {
           watchdog('user', 'Session closed for %name by CAS logout request.', array('%name' => $record->name));
           //remove all entry for user id in cas_login_data
@@ -1159,10 +1159,11 @@ function _cas_single_sign_out_save_token($user) {
   // Ok lets save the CAS service ticket to DB so
   // we can handle CAS logoutRequests when they come
   if ($user->uid && $user->uid > 0 && !empty($_SESSION['cas_ticket'])) {
+    $hashed_ticket = hash('sha256', $_SESSION['cas_ticket']);
     db_merge('cas_login_data')
-      ->key(array('cas_session_id' => $_SESSION['cas_ticket']))
+      ->key(array('cas_session_id' => $hashed_ticket))
       ->fields(array(
-        'cas_session_id' => $_SESSION['cas_ticket'],
+        'cas_session_id' => $hashed_ticket,
         'uid' => $user->uid,
         'created' => time(),
       ))

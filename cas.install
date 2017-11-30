@@ -424,3 +424,16 @@ function cas_update_7103() {
     ->fields(array('created' => $now))
     ->execute();
 }
+
+/**
+ * Hash all existing CAS session IDs in cas_login_data.
+ */
+function cas_update_7104() {
+  $result = db_query('SELECT cas_session_id FROM {cas_login_data}');
+  foreach ($result as $data) {
+    db_update('cas_login_data')
+      ->fields(array('cas_session_id' => hash('sha256', $data->cas_session_id)))
+      ->condition('cas_session_id', $data->cas_session_id)
+      ->execute();
+  }
+}
