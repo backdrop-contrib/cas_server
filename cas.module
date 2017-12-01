@@ -86,7 +86,19 @@ function cas_login_check($force_authentication = TRUE) {
 
   // We're going to try phpCAS auth test
   if ($force_authentication) {
-    phpCAS::forceAuthentication();
+    try {
+      phpCAS::forceAuthentication();
+    }
+    catch (CAS_AuthenticationException $e) {
+      drupal_set_message(t('Error authenticating with CAS. Please try again or contact your website administrator if the problem persists.'), 'error');
+      watchdog_exception('cas', $e);
+      // We have to redirect the user somewhere else because the CAS exception
+      // will have written error details directly to stdout, and we don't want
+      // to show anything like that to the user.
+      // This bring users to the homepage or to the page set in destination
+      // param.
+      drupal_goto('');
+    }
   }
   else {
     $logged_in = phpCAS::checkAuthentication();
