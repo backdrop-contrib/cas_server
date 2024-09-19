@@ -51,70 +51,38 @@ function cas_server_schema() {
  * Implements hook_uninstall().
  */
 function cas_server_uninstall() {
-  variable_del('cas_server_service_whitelist');
-  variable_del('cas_server_whitelist_failure');
-  variable_get('cas_server_slo_individual_timeout');
-  variable_get('cas_server_slo_group_timeout');
+  $config = config('cas_server.settings');
+  $config->delete();
+}
+
+// The old hook_update_N functions from Drupal don't need to be applied to Backdrop.
+function cas_server_update_7000() { }
+
+function cas_server_update_7101() { }
+
+function cas_server_update_7102() { }
+
+/**
+ * Implements hook_update_last_removed().
+ */
+function cas_server_update_last_removed() {
+  return 7102;
 }
 
 /**
- * Creates CAS server tickets table.
+ * Migrate cas_server variables to config.
  */
-function cas_server_update_7000() {
-  $schema = array();
+function cas_server_update_1000() {
+  $config = config('cas_server.settings');
+  $config->set('cas_server_service_whitelist', update_variable_get('cas_server_service_whitelist', ''));
+  $config->set('cas_server_whitelist_failure', update_variable_get('cas_server_whitelist_failure', 'dynamic value in file /cas_server/cas_server.module line 318'));
+  $config->set('cas_server_slo_group_timeout', update_variable_get('cas_server_slo_group_timeout', '15'));
+  $config->set('cas_server_slo_individual_timeout', update_variable_get('cas_server_slo_individual_timeout', '5'));
+  $config->save();
 
-  $schema['cas_server_tickets'] = array(
-    'description' => 'Stores CAS server tickets.',
-    'fields' => array(
-      'service' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-      'ticket' => array(
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-      'uid' => array(
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-      ),
-      'timestamp' => array(
-        'type' => 'int',
-        'not null' => TRUE,
-      ),
-    ),
-    'primary key' => array('ticket'),
-  );
-
-  $ret = array();
-  if (!db_table_exists('cas_server_tickets')) {
-    db_create_table('cas_server_tickets', $schema['cas_server_tickets']);
-  }
-  return $ret;
+  update_variable_del('cas_server_service_whitelist');
+  update_variable_del('cas_server_whitelist_failure');
+  update_variable_del('cas_server_slo_group_timeout');
+  update_variable_del('cas_server_slo_individual_timeout');
 }
 
-/**
- * Adds valid field to indicate when ticket is valid for reuse.
- */
-function cas_server_update_7101() {
-  if (!db_field_exists('cas_server_tickets', 'valid')) {
-    db_add_field('cas_server_tickets', 'valid', array('type' => 'int', 'not null' => TRUE, 'default' => 1, ));
-  }
-}
-
-/**
- * Increases 'service' field size to 1024.
- */
-function cas_server_update_7102() {
-  db_change_field('cas_server_tickets', 'service', 'service', array(
-    'type' => 'varchar',
-    'length' => 1024,
-    'not null' => TRUE,
-    'default' => '',
-  ));
-}

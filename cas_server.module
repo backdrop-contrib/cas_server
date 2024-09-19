@@ -6,7 +6,7 @@
 define('CAS_LOGIN_COOKIE', 'cas_server_login');
 
 /**
- * Implementation of hook_menu
+ * Implements hook_menu().
  */
 function cas_server_menu() {
   $items = array();
@@ -48,19 +48,19 @@ function cas_server_menu() {
   $items['admin/config/people/cas_server'] = array(
     'title' => 'CAS Server',
     'description' => 'Configure central authentication services server',
-    'page callback' => 'drupal_get_form',
+    'page callback' => 'backdrop_get_form',
     'page arguments' => array('cas_server_admin_settings'),
     'access arguments' => array('administer cas server'),
     'type' => MENU_NORMAL_ITEM,
     'file' => 'cas_server.admin.inc',
   );
-
+/*
   $items['admin/config/people/cas_server/settings'] = array(
     'title' => 'Settings',
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'weight' => -10,
   );
-
+*/
   return $items;
 }
 
@@ -73,7 +73,7 @@ function cas_server_permission() {
       'title' => t('Administer CAS Server'),
       'description' => t('Configure CAS server settings.'),
       'restrict access' => TRUE,
-    )
+    ),
   );
 }
 
@@ -112,23 +112,39 @@ function cas_server_theme() {
  */
 function cas_server_cas_server_user_attributes($account, $service) {
   return array(
-    'uid'           => $account->uid,
-    'mail'          => $account->mail,
-    'created'       => $account->created,
-    'timezone'      => $account->timezone,
-    'language'      => $account->language,
-    'drupal_roles'  => $account->roles,
+    'uid' => $account->uid,
+    'mail' => $account->mail,
+    'created' => $account->created,
+    'timezone' => $account->timezone,
+    'language' => $account->language,
+    'drupal_roles' => $account->roles, # keep this for compatibility with Drupal CAS clients
+    'backdrop_roles' => $account->roles,
   );
 }
 
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function cas_server_service_return() {
   global $user;
   $service = isset($_COOKIE[CAS_LOGIN_COOKIE]) ? $_COOKIE[CAS_LOGIN_COOKIE] : '';
   if ($service && $user->uid) {
     $ticket = _cas_server_save_ticket($user->uid, $service);
     setcookie(CAS_LOGIN_COOKIE, "", -3600);
-    drupal_goto($service, array('query' => array('ticket' => $ticket)));
+    backdrop_goto($service, array('query' => array('ticket' => $ticket)));
   }
+}
+
+/**
+ * Implements hook_config_info().
+ */
+function cas_server_config_info() {
+  $prefixes['cas_server.settings'] = array(
+    'label' => t('CAS Server settings'),
+    'group' => t('Configuration'),
+  );
+  return $prefixes;
 }
 
 /**
@@ -138,8 +154,8 @@ function cas_server_service_return() {
 function cas_server_login() {
   // Set login cookie so that we know we're in the process of logging in
   global $user;
-  $output='';
-  $whitelist_error_msg = variable_get('cas_server_whitelist_failure', t('You do not have permission to login to CAS from this service.'));
+  $output = '';
+  $whitelist_error_msg = config_get('cas_server.settings', 'cas_server_whitelist_failure');
   $service = isset($_REQUEST['service']) ? $_REQUEST['service'] : '';
   $gateway = isset($_REQUEST['gateway']);
   if ($user->uid) {
@@ -152,12 +168,12 @@ function cas_server_login() {
         $_COOKIE[CAS_LOGIN_COOKIE] = $service;
       }
     }
-    $output=t('You have successfully logged into CAS');
+    $output = t('You have successfully logged into CAS');
     cas_server_service_return();
   }
   else {
     if ($gateway && $service) {
-      drupal_goto($service);
+      backdrop_goto($service);
     }
     else {
       // Redirect to user login
@@ -171,7 +187,7 @@ function cas_server_login() {
         }
       }
       $output .= l(t('Login'), 'user', array('query' => array('destination' => 'cas/login')));
-      drupal_goto('user/login', array('query' => array('destination' => 'cas/login')));
+      backdrop_goto('user/login', array('query' => array('destination' => 'cas/login')));
     }
   }
   return $output;
@@ -183,10 +199,10 @@ function cas_server_login() {
  */
 function cas_server_validate() {
   // Prevent this page from being cached.
-  drupal_page_is_cacheable(FALSE);
+  backdrop_page_is_cacheable(FALSE);
 
   // Set content type.
-  drupal_add_http_header('Content-Type', 'text/plain; charset=utf-8');
+  backdrop_add_http_header('Content-Type', 'text/plain; charset=utf-8');
 
   //Obtain the ticket from the url and validate it.
   $ticket = isset($_REQUEST['ticket']) ? $_REQUEST['ticket'] : '';
@@ -215,25 +231,29 @@ function cas_server_validate() {
  */
 function cas_server_service_validate() {
   // Prevent this page from being cached.
-  drupal_page_is_cacheable(FALSE);
+  backdrop_page_is_cacheable(FALSE);
 
   // Set content type.
-  drupal_add_http_header('Content-Type', 'text/xml; charset=utf-8');
+  backdrop_add_http_header('Content-Type', 'text/xml; charset=utf-8');
 
   $ticket = isset($_REQUEST['ticket']) ? $_REQUEST['ticket'] : '';
   $service = isset($_REQUEST['service']) ? $_REQUEST['service'] : '';
 
   // Check service against whitelist
   if (!_cas_server_check_service_whitelist($service)) {
-    $cas_error='INVALID_REQUEST';
+    $cas_error = 'INVALID_REQUEST';
     print theme('cas_server_validate_whitelist_failure', array('service' => $service, 'error_code' => $cas_error));
     watchdog('cas', 'Service %service validation failed!', array('%service' => $service));
     return;
   }
 
   $user_name = _cas_server_validate($service, $ticket);
-  if (!$user_name) $cas_error='INVALID_TICKET';
-  if (!$ticket || !$service) $cas_error='INVALID_REQUEST';
+  if (!$user_name) {
+    $cas_error = 'INVALID_TICKET';
+  }
+  if (!$ticket || !$service) {
+    $cas_error = 'INVALID_REQUEST';
+  }
 
   if ($user_name) {
     //@TODO Generate proxy granting ticket
@@ -247,7 +267,7 @@ function cas_server_service_validate() {
       'service' => $service,
       'ticket' => $ticket,
     );
-    drupal_alter('cas_server_user_attributes', $attributes, $account, $context);
+    backdrop_alter('cas_server_user_attributes', $attributes, $account, $context);
 
     print theme('cas_service_validate_success', array('name' => $user_name, 'attributes' => $attributes));
     watchdog('cas', 'User %name CAS successfully authenticated.', array('%name' => $user_name));
@@ -256,12 +276,17 @@ function cas_server_service_validate() {
     print theme('cas_service_validate_failure', array('ticket' => $ticket, 'error_code' => $cas_error));
     watchdog('cas', 'Ticket %ticket for service %service not recognized.', array('%ticket' => $ticket, '%service' => $service));
   }
+  exit; # skip printing whole themed page
 }
 
+/**
+ * @todo Please document this function.
+ * @see http://drupal.org/node/1354
+ */
 function _cas_server_check_service_whitelist($service) {
-  $mapping_raw = variable_get('cas_server_service_whitelist', '');
+  $mapping_raw = config_get('cas_server.settings', 'cas_server_service_whitelist');
   if (trim($mapping_raw) != '') {
-    if (!drupal_match_path($service, $mapping_raw)) {
+    if (!backdrop_match_path($service, $mapping_raw)) {
       return FALSE;
     }
   }
@@ -276,8 +301,11 @@ function _cas_server_check_service_whitelist($service) {
  */
 function _cas_server_validate($service, $ticket) {
   // Look up the ticket
-  $user_name='';
-  $ticket_info=array(':service' => $service, ':ticket' => $ticket);
+  $user_name = '';
+  $ticket_info = array(
+    ':service' => $service,
+    ':ticket' => $ticket,
+  );
   $result = db_query_range("SELECT u.name FROM {cas_server_tickets} t JOIN {users} u ON t.uid=u.uid  WHERE t.service = :service and t.ticket = :ticket AND valid=1", 0, 1, $ticket_info);
   if ($result !== FALSE) {
     foreach ($result as $ticket_data) {
@@ -301,7 +329,13 @@ function _cas_server_save_ticket($uid, $service) {
   // Generate the ticket
   $time = REQUEST_TIME;
   $ticket = 'ST-' . user_password();
-  $ticket_data = array('uid' => $uid, 'service' => $service, 'ticket' => $ticket, 'timestamp' => $time, 'valid' => 1);
+  $ticket_data = array(
+    'uid' => $uid,
+    'service' => $service,
+    'ticket' => $ticket,
+    'timestamp' => $time,
+    'valid' => 1,
+  );
   // Save the ticket to the db
   if ($uid && $service) {
     db_insert('cas_server_tickets')->fields($ticket_data)->execute();
@@ -315,7 +349,7 @@ function _cas_server_save_ticket($uid, $service) {
 function cas_server_logout() {
   // Check service against whitelist
   if (isset($_GET['service']) && !_cas_server_check_service_whitelist($_GET['service'])) {
-    return variable_get('cas_server_whitelist_failure', t('You do not have permission to login to CAS from this service.'));
+    return config_get('cas_server.settings', 'cas_server_whitelist_failure');
   }
 
   global $user;
@@ -323,9 +357,9 @@ function cas_server_logout() {
   // Due to the order of sessions being destroyed on a client site vs CAS server,
   // there is a workflow that would allow the user's session to not exist at this point.
   // Skip triggering user logout related processes if there is not a valid user in session.
-  if(user_is_logged_in()) {
+  if (user_is_logged_in()) {
     // Log the successful logout process.
-    watchdog('user', 'Session closed for %name.', array('%name' => format_username($user)));
+    watchdog('user', 'Session closed for %name.', array('%name' => user_format_name($user)));
     // Tell modules about the logout.
     module_invoke_all('user_logout', $user);
   }
@@ -347,44 +381,45 @@ function cas_server_logout() {
  *   The user for whom to send CAS logout requests.
  */
 function cas_server_logout_clients($account) {
-   $result = db_query("SELECT service, ticket, valid FROM {cas_server_tickets} WHERE uid= :uid", array(':uid' => $account->uid));
-    if ($result !== FALSE) {
-      $expired_tickets = array();
-      // Set a time limit for all logout requests. This is useful if a user has
-      // accumulated a lot of login sessions for services that may be
-      // unresponsive.
-      $timelimit = time() + (int) variable_get('cas_server_slo_group_timeout', 15);
-      foreach ($result as $client) {
-        if (time() > $timelimit) {
-          break;
-        }
-        $expired_tickets[] = $client->ticket;
-        if (!$client->valid)  {
-          $id = 'LR-' . user_password();
-          $date = date('c');
-          $logout_request = theme('cas_service_logout_request', array('id' => $id, 'date' => $date, 'ticket' => $client->ticket));
-          // Send POST request
-          $response = drupal_http_request(
+  $config = config('cas_server.settings');
+  $result = db_query("SELECT service, ticket, valid FROM {cas_server_tickets} WHERE uid= :uid", array(':uid' => $account->uid));
+  if ($result !== FALSE) {
+    $expired_tickets = array();
+    // Set a time limit for all logout requests. This is useful if a user has
+    // accumulated a lot of login sessions for services that may be
+    // unresponsive.
+    $timelimit = time() + (int) $config->get('cas_server_slo_group_timeout');
+    foreach ($result as $client) {
+      if (time() > $timelimit) {
+        break;
+      }
+      $expired_tickets[] = $client->ticket;
+      if (!$client->valid) {
+        $id = 'LR-' . user_password();
+        $date = date('c');
+        $logout_request = theme('cas_service_logout_request', array('id' => $id, 'date' => $date, 'ticket' => $client->ticket));
+        // Send POST request
+        $response = backdrop_http_request(
             $client->service,
             array(
-              'headers' => array('Content-Type' => 'application/x-www-form-urlencoded'),
-              'method' =>  'POST',
-              'data' => 'logoutRequest=' . urlencode($logout_request),
-              'timeout' => (int) variable_get('cas_server_slo_individual_timeout', 5),
-            )
+          'headers' => array('Content-Type' => 'application/x-www-form-urlencoded'),
+          'method' => 'POST',
+          'data' => 'logoutRequest=' . urlencode($logout_request),
+          'timeout' => (int) $config->get('cas_server_slo_individual_timeout'),
+        )
           );
-          if (@$response->error) {
-            watchdog('error', 'Error in CAS logout Request - %code : %message', array('%code' => $response->code, '%error' => $response->error));
-          }
+        if (@$response->error) {
+          watchdog('error', 'Error in CAS logout Request - %code : %message', array('%code' => $response->code, '%error' => $response->error));
         }
-        // Remove ticket
       }
-      if ($expired_tickets) {
-        db_delete('cas_server_tickets')
+      // Remove ticket
+    }
+    if ($expired_tickets) {
+      db_delete('cas_server_tickets')
           ->condition('ticket', $expired_tickets, 'IN')
           ->execute();
-      }
     }
+  }
 }
 
 /**

@@ -1,5 +1,6 @@
 name = CAS Server
 package = Central Authentication Service
-core = 7.x
+backdrop = 1.x
+type = module
 description = "Provides protocol compliant CAS Server"
 configure = admin/config/people/cas_server
