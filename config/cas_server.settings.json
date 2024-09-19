@@ -1,0 +1,7 @@
+{
+    "_config_name": "cas_server.settings",
+    "cas_server_service_whitelist": "",
+    "cas_server_whitelist_failure": "You do not have permission to login to CAS from this service.",
+    "cas_server_slo_group_timeout": "15",
+    "cas_server_slo_individual_timeout": "5"
+}
